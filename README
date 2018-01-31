@@ -1,0 +1,6 @@
+1 To install simplecar: make under the root directory of source codes
+
+2 To run simplecar: ./simplecar -h for details
+
+For example, you can run "./simplecar -b -e ../benchmarks/single/counterp0.aig ./"
+After the program teminates, two files "counterp0.log" (output of simplecar) and "counterp0.res" (counterexample in aiger model) will be generated under the current directory.
