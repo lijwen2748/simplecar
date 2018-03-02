@@ -45,7 +45,8 @@
 
  		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false); 
  		
- 		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_) {}
+ 		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_), 
+ 		init_ (s->init_), id_ (s->id_) {}
 
  		~State () {}
  		
@@ -56,6 +57,9 @@
  		
  		inline void set_inputs (const Assignment& st) {inputs_ = st;}
  		inline void set_last_inputs (const Assignment& st) {last_inputs_ = st;}
+ 		inline void set_initial (bool val) {init_ = val;}
+ 		inline void set_final (bool val) {final_ = val;}
+ 		inline int id () {return id_;}
  		
  		inline void print () { std::cout << latches () << std::endl;}
  		
@@ -86,11 +90,16 @@
  		std::vector<int> inputs_;
  		std::vector<int> last_inputs_; // for backward CAR only!
  		
+ 		bool init_;  //whether it is an initial state
+ 		bool final_; //whether it is an final state
+ 		int id_;     //the state id
+ 		
  		
  		int detect_dead_start_; //to store the start position to check whether it is a dead state
  		
  		static int num_inputs_;
  		static int num_latches_;
+ 		static int id_counter_;
  	};
  	
  	typedef std::vector<std::vector<State*> > Bsequence;

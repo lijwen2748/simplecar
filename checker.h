@@ -41,7 +41,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
+		Checker (Model* model, Statistics& stats, std::ofstream& dot, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -62,6 +62,9 @@ namespace car
 		//members
 		Statistics *stats_;
 		double reduce_ratio_;
+		
+		std::ofstream* dot_;
+		
 		int minimal_update_level_;
 		State* init_;  // the start state for forward CAR
 		State* last_;  // the start state for backward CAR

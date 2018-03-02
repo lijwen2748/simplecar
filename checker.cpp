@@ -97,6 +97,7 @@ namespace car
 		int frame_level = 0;
 		while (true)
 		{
+		    cout << "Frame " << frame_level << endl;
 		    if (verbose_)
 		    {
 		        cout << "-----------------Step " << frame_level << "------------------" << endl;
@@ -144,27 +145,28 @@ namespace car
 			cout << "end of check" << endl;
 		return false;
 	}
+	
 	bool Checker::try_satisfy (const int frame_level)
 	{
 		
 		    remove_dead_states ();
 		
-		for (int i = B_.size () - 1; i >= 0; i --)
-		{
-			for (int j = 0; j < B_[i].size (); j ++)
-			{
-			    
-				if (try_satisfy_by (frame_level, B_[i][j]))
-					return true;
-				if (safe_reported ())
-					return false;
-			}
-		}
+		int res = do_search (frame_level);
+		if (res == 1)
+		    return true;
+		else if (res == 0)
+		    return false;
+		        
 		
+		
+		//for forward CAR, the initial states are set of cubes
 		State *s = enumerate_start_state ();
 		while (s != NULL)
 		{
-			
+			s->set_initial (true);
+			//////generate dot data
+			(*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
+			//////generate dot data
 		    update_B_sequence (s, 0);
 			if (try_satisfy_by (frame_level, s))
 			    return true;
@@ -174,6 +176,74 @@ namespace car
 		}
 	
 		return false;
+	}
+	
+	/*Main function to do state search in CAR
+	* Input:
+	*       frame_level: The frame level currently working on
+	* Output:
+	*       1: a counterexample is found
+	*       0: The safe result is reported
+	*       -1: else
+	*/
+	int Checker::do_search (const int frame_level)
+	{
+	    if (greedy_)//greedy search on F sequence
+	    {
+	        vector<vector<State*> > states_seq;
+	        initial_greedy_state_sequence (states_seq);
+	        int work = 0;
+	        while (true)
+	        {
+	            //all states have been explored, but cannot find a solution
+	            if (work == 0 && states_seq[work].empty ())
+	                return -1;
+	            if (states_seq[work].empty ())
+	            {
+	                work --;
+	            }
+	            else
+	            {
+	                State* s = pick_up_one_state (states_seq[work]);
+	                bool check_res = (frame_level-work == -1) ? immediate_satisfiable (s) : solve_with (const_cast<State*>(s)->s (), frame_level-work);
+	                if (check_res)
+	                {
+	                    if (frame_level - work == -1)
+	                        return 1;
+	                    State* new_state = get_new_state (s);
+	                    assert (new_state != NULL);
+	                    
+	                    update_B_sequence (new_state, s->pos()+1);
+	                    push_back_to (states_seq, work, s);
+	                    int new_level = get_new_level (new_state, frame_level-work);
+	                    	                    
+	                    work = frame_level - new_level;
+	                    push_back_to (states_seq, work, new_state); 
+	                }
+	                else
+	                {
+	                    update_F_sequence (frame_level-work+1);
+	                    if (safe_reported ())
+			                return 0;
+	                }
+	            }
+	        }
+	    }
+	    else //DFS search on B sequence
+	    {
+	        for (int i = B_.size () - 1; i >= 0; i --)
+		    {
+			    for (int j = 0; j < B_[i].size (); j ++)
+			    {
+			    
+				    if (try_satisfy_by (frame_level, B_[i][j]))
+					    return 1;
+				    if (safe_reported ())
+					    return 0;
+			    }
+		    }
+		}
+		return -1;
 	}
 	
 	bool Checker::try_satisfy_by (int frame_level, const State* s)
@@ -208,6 +278,11 @@ namespace car
 		    {
 			    State* new_state = get_new_state (s);
 			    assert (new_state != NULL);
+			    
+			    //////generate dot data
+			    (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
+			    //////generate dot data
+			    
 			    int new_level = get_new_level (new_state, frame_level);
 			    if (detect_dead_state_ && new_level != -1)
 		    	{	
@@ -305,12 +380,13 @@ namespace car
 	
 	
 	//////////////helper functions/////////////////////////////////////////////
-	Checker::Checker (Model* model, Statistics& stats, double ratio, bool forward, bool inv_next, bool propagate, bool evidence, bool verbose, bool intersect, bool minimal_uc, bool detect_dead_state, bool relative, bool relative_full)
+	Checker::Checker (Model* model, Statistics& stats, ofstream& dot, double ratio, bool forward, bool inv_next, bool propagate, bool evidence, bool verbose, bool intersect, bool minimal_uc, bool detect_dead_state, bool relative, bool relative_full)
 	{
 	    
 		model_ = model;
 		reduce_ratio_ = ratio;
 		stats_ = &stats;
+		dot_ = &dot;
 		solver_ = NULL;
 		start_solver_ = NULL;
 		inv_solver_ = NULL;
@@ -515,6 +591,10 @@ namespace car
 	            std::pair<Assignment, Assignment> pa = state_pair (st);
 	            const_cast<State*> (s)->set_last_inputs (pa.first);
 	            last_ = new State (const_cast<State*>(s));
+	            last_->set_final (true);
+	            //////generate dot data
+	            (*dot_) << "\n\t\t\t" << last_->id () << " [shape = circle, color = red, label = \"final\", size = 0.01];";
+	            //////generate dot data
 	            return true;
 	        }
 	        return false;

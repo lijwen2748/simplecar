@@ -53,6 +53,8 @@
  			s_ = latches;
  		}
  		detect_dead_start_ = 0;
+ 		init_ = false;
+ 		id_ = id_counter_++;
  	}
  	
  	bool State::imply (const Cube& cu) const
@@ -152,11 +154,14 @@
  	
  	int State::num_inputs_ = 0;
  	int State::num_latches_ = 0;
+ 	int State::id_counter_ = 1;
  	
  	void State::set_num_inputs_and_latches (const int n1, const int n2) 
  	{
  		num_inputs_ = n1;
  	    num_latches_ = n2;
  	}
+ 	
+ 	
 }
  		

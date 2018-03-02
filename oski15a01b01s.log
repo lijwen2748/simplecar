@@ -1,0 +1,27 @@
+Frame 0
+Frame 1
+Frame 2
+Frame 3
+Frame 4
+Time of model construct: 1.01573
+Num of total SAT Calls: 207
+      Num of main solver SAT Calls: 198
+      Num of inv solver SAT Calls: 4
+      Num of start solver SAT Calls: 5
+      Num of reduce uc SAT Calls: 0
+      Num of detect dead state SAT Calls: 0
+Time of total SAT Calls: 17.8894
+      Time of main solver SAT Calls: 17.2739
+      Time of inv solver SAT Calls: 0.433331
+      Time of start solver SAT Calls: 0.182128
+      Time of reduce uc SAT Calls: 0
+      Time of detect dead state SAT Calls: 0
+Num of detect dead state success: 0
+Num of clause contain: 100
+Time of clause contain: 0.002608
+Num of state contain: 198
+Time of state contain: 0.003767
+Sum of original uc: 0
+Sum of reduce uc: 0
+Reduce uc ratio: -nan
+Total Time: 21.2217

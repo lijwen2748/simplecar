@@ -30,11 +30,16 @@ using namespace std;
 using namespace car;
 
 Statistics stats;
+ofstream dot_file;
 
 void  signal_handler (int sig_num)
 {
 	stats.count_total_time_end ();
 	stats.print ();
+	
+	//write the dot file tail
+    dot_file << "\n}" << endl;
+	dot_file.close ();
 	exit (0);
 }
 
@@ -88,6 +93,7 @@ void check_aiger (int argc, char** argv)
    bool propagate = false;
    bool intersect = false;
    bool inv_next = false;
+   
    
    string input;
    string output_dir;
@@ -144,11 +150,19 @@ void check_aiger (int argc, char** argv)
   std::string stderr_filename = output_dir + filename + ".err";
   std::string res_file_name = output_dir + filename + ".res";
   
+  std::string dot_file_name = output_dir + filename + ".gv";
+  
   if (!verbose)
     freopen (stdout_filename.c_str (), "w", stdout);
   //freopen (stderr_filename.c_str (), "w", stderr);
   ofstream res_file;
   res_file.open (res_file_name.c_str ());
+  
+  //write the Bad states to dot file
+  
+  dot_file.open (dot_file_name.c_str ());
+  //prepare the dot header
+  dot_file << "graph system {\n\t\t\tnode [shape = point];\n\t\t\tedge [penwidth = 0.1];\n\t\t\tratio = auto;";
   
   stats.count_total_time_start ();
   //get aiger object
@@ -178,7 +192,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   Checker ch (model, stats, reduce_ratio, forward, inv_next, propagate, evidence, verbose, intersect, minimal_uc, detect_dead_state, relative, relative_full);
+   Checker ch (model, stats, dot_file, reduce_ratio, forward, inv_next, propagate, evidence, verbose, intersect, minimal_uc, detect_dead_state, relative, relative_full);
 
    aiger_reset(aig);
    
@@ -186,6 +200,10 @@ void check_aiger (int argc, char** argv)
     
    delete model;
    res_file.close ();
+   
+   //write the dot file tail
+   dot_file << "\n}" << endl;
+   dot_file.close ();
    stats.count_total_time_end ();
    stats.print ();
    return;
