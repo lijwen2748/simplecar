@@ -41,7 +41,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream& dot, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
+		Checker (Model* model, Statistics& stats, std::ofstream& dot, bool greedy, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -101,7 +101,7 @@ namespace car
 		void extend_F_sequence ();
 		void update_F_sequence (const State* s, const int frame_level);
 		void update_frame_by_relative (const State* s, const int frame_level);
-		void update_B_sequence (const State* s, const int frame_level);
+		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
 		void push_to_frame (Cube& cu, const int frame_level, const State* s = NULL);
 		bool tried_before (const State* s, const int frame_level);
@@ -137,6 +137,13 @@ namespace car
 				frames_intersect_.push_back (cu);
 			return frames_intersect_[frame_level];
 		}
+		
+		//heuristics search API
+		bool greedy_;
+		int do_search (const int frame_level);
+		void initial_greedy_state_sequence (std::vector<std::vector<State*> > &state_seq);
+		State* pick_up_one_state (std::vector<State*>& states);
+		void push_back_to (std::vector<std::vector<State*> >& states_seq, const int work, State * new_state);
 		
 		//inline functions
 		inline void create_inv_solver ()

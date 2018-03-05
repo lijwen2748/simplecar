@@ -93,6 +93,7 @@ void check_aiger (int argc, char** argv)
    bool propagate = false;
    bool intersect = false;
    bool inv_next = false;
+   bool greedy = true;
    
    
    string input;
@@ -192,7 +193,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   Checker ch (model, stats, dot_file, reduce_ratio, forward, inv_next, propagate, evidence, verbose, intersect, minimal_uc, detect_dead_state, relative, relative_full);
+   Checker ch (model, stats, dot_file, greedy, reduce_ratio, forward, inv_next, propagate, evidence, verbose, intersect, minimal_uc, detect_dead_state, relative, relative_full);
 
    aiger_reset(aig);
    

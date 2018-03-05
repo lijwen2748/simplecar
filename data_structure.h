@@ -46,7 +46,7 @@
  		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false); 
  		
  		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_), 
- 		init_ (s->init_), id_ (s->id_) {}
+ 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_) {}
 
  		~State () {}
  		
@@ -59,13 +59,14 @@
  		inline void set_last_inputs (const Assignment& st) {last_inputs_ = st;}
  		inline void set_initial (bool val) {init_ = val;}
  		inline void set_final (bool val) {final_ = val;}
+ 		inline void set_depth (int pos) {dep_ = pos;}
  		inline int id () {return id_;}
  		
  		inline void print () { std::cout << latches () << std::endl;}
  		
  		void print_evidence (bool forward, std::ofstream&);
  		
- 		
+ 		inline int depth () {return dep_;}
  		inline Assignment& s () {return s_;}
  		inline State* next () {return next_;}
  		inline State* pre () {return pre_;}
@@ -93,6 +94,7 @@
  		bool init_;  //whether it is an initial state
  		bool final_; //whether it is an final state
  		int id_;     //the state id
+ 		int dep_;    //the length from the starting state
  		
  		
  		int detect_dead_start_; //to store the start position to check whether it is a dead state

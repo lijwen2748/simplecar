@@ -55,6 +55,10 @@
  		detect_dead_start_ = 0;
  		init_ = false;
  		id_ = id_counter_++;
+ 		if (s == NULL)
+ 		    dep_ = 0;
+ 		else
+ 		    dep_ = s->dep_ + 1;
  	}
  	
  	bool State::imply (const Cube& cu) const

@@ -167,7 +167,8 @@ namespace car
 			//////generate dot data
 			(*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
 			//////generate dot data
-		    update_B_sequence (s, 0);
+			s->set_depth (0);
+		    update_B_sequence (s);
 			if (try_satisfy_by (frame_level, s))
 			    return true;
 			if (safe_reported ())
@@ -199,9 +200,7 @@ namespace car
 	            if (work == 0 && states_seq[work].empty ())
 	                return -1;
 	            if (states_seq[work].empty ())
-	            {
 	                work --;
-	            }
 	            else
 	            {
 	                State* s = pick_up_one_state (states_seq[work]);
@@ -213,7 +212,7 @@ namespace car
 	                    State* new_state = get_new_state (s);
 	                    assert (new_state != NULL);
 	                    
-	                    update_B_sequence (new_state, s->pos()+1);
+	                    update_B_sequence (new_state);
 	                    push_back_to (states_seq, work, s);
 	                    int new_level = get_new_level (new_state, frame_level-work);
 	                    	                    
@@ -222,10 +221,14 @@ namespace car
 	                }
 	                else
 	                {
-	                    update_F_sequence (frame_level-work+1);
+	                    update_F_sequence (s, frame_level-work+1);
 	                    if (safe_reported ())
 			                return 0;
+	                    if (work > 0)
+	                        push_back_to (states_seq, work-1, s);
+	                    
 	                }
+	                
 	            }
 	        }
 	    }
@@ -298,7 +301,7 @@ namespace car
 		            	continue;
 		        	}
 		    	}
-			    update_B_sequence (new_state, frame_level);
+			    update_B_sequence (new_state);
 			    
 			    if (try_satisfy_by (new_level, new_state))
 				    return true;
@@ -380,13 +383,59 @@ namespace car
 	
 	
 	//////////////helper functions/////////////////////////////////////////////
-	Checker::Checker (Model* model, Statistics& stats, ofstream& dot, double ratio, bool forward, bool inv_next, bool propagate, bool evidence, bool verbose, bool intersect, bool minimal_uc, bool detect_dead_state, bool relative, bool relative_full)
+	
+	/*
+	* Initialize \@ state_seq by filling all states of \@ B_ into state_seq[0]
+	* 
+	*/
+	void Checker::initial_greedy_state_sequence (std::vector<std::vector<State*> > &state_seq)
+	{
+	    assert (state_seq.size () == 0);
+	    vector<State *> v;
+	    for (int i = 0; i < B_.size (); i ++)
+	    {
+	        for (int j = 0; j < B_[i].size (); j ++)
+	            v.push_back (B_[i][j]);
+	    }
+	    state_seq.push_back (v);   
+	}
+	
+	/*
+	* Pick up one state from the vector \@ states
+	* There are different ways to pick up: Right now we just use the simplest one -- choose the last state 
+	* After the state is picked up, it must also be removed from the vector
+	*
+	*/
+	State* Checker::pick_up_one_state (std::vector<State*>& states)
+	{
+	    assert (!states.empty ());
+	    State *res = states.back ();
+	    states.pop_back ();
+	    return res;
+	}
+	
+	/*
+	* Push \@ new_state into \@states_seq[\@ work]
+	*
+	*/
+	void Checker::push_back_to (std::vector<std::vector<State*> >& states_seq, const int work, State* new_state)
+	{
+	    while (states_seq.size () <= work)
+	    {
+	        vector<State *> v;
+	        states_seq.push_back (v);
+	    }
+	    states_seq[work].push_back (new_state);
+	}
+	
+	Checker::Checker (Model* model, Statistics& stats, ofstream& dot, bool greedy, double ratio, bool forward, bool inv_next, bool propagate, bool evidence, bool verbose, bool intersect, bool minimal_uc, bool detect_dead_state, bool relative, bool relative_full)
 	{
 	    
 		model_ = model;
 		reduce_ratio_ = ratio;
 		stats_ = &stats;
 		dot_ = &dot;
+		greedy_ = greedy;
 		solver_ = NULL;
 		start_solver_ = NULL;
 		inv_solver_ = NULL;
@@ -727,14 +776,14 @@ namespace car
 		solver_->add_new_frame (frame_, F_.size()-1, forward_);
 	}
 	
-	void Checker::update_B_sequence (const State* s, const int frame_level)
+	void Checker::update_B_sequence (State* s)
 	{
-	    while (int (B_.size ()) <= frame_level)
+	    while (int (B_.size ()) <= s->depth ())
 	    {
 	        vector<State*> v;
 	        B_.push_back (v);
 	    }
-	    B_[frame_level].push_back (const_cast<State*> (s));
+	    B_[s->depth ()].push_back (s);
 	}
 	
 	void Checker::update_F_sequence (const State* s, const int frame_level)
