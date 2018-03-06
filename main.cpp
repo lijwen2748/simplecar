@@ -45,10 +45,11 @@ void  signal_handler (int sig_num)
 
 void print_usage () 
 {
-  printf ("Usage: simplecar <-f|-b|-p|-e|-v|-h> <aiger file> <output directory>\n");
+  printf ("Usage: simplecar <-f|-b> <-p|-g|-e|-v|-h> <aiger file> <output directory>\n");
   printf ("       -f          forward checking (Default = backward checking)\n");
   printf ("       -b          backward checking \n");
   printf ("       -p          enable propagation (Default = off)\n");
+  printf ("       -g          enable greedy search (Default = off)\n");
   printf ("       -e          print witness (Default = off)\n");
   printf ("       -v          print verbose information (Default = off)\n");
   printf ("       -h          print help information\n");
@@ -93,7 +94,7 @@ void check_aiger (int argc, char** argv)
    bool propagate = false;
    bool intersect = false;
    bool inv_next = false;
-   bool greedy = true;
+   bool greedy = false;
    
    
    string input;
@@ -108,6 +109,8 @@ void check_aiger (int argc, char** argv)
    			forward = false;
    		else if (strcmp (argv[i], "-p") == 0)
    			propagate = true;
+   	    else if (strcmp (argv[i], "-g") == 0)
+   	        greedy = true;
    		else if (strcmp (argv[i], "-v") == 0)
    			verbose = true;
    		else if (strcmp (argv[i], "-e") == 0)

@@ -212,6 +212,10 @@ namespace car
 	                    State* new_state = get_new_state (s);
 	                    assert (new_state != NULL);
 	                    
+	                    //////generate dot data
+			            (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
+			            //////generate dot data
+	                    
 	                    update_B_sequence (new_state);
 	                    push_back_to (states_seq, work, s);
 	                    int new_level = get_new_level (new_state, frame_level-work);
