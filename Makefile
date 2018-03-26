@@ -16,7 +16,7 @@ GCC = gcc
 GXX = g++
 
 simplecar: $(SOURCES)
-	$(GCC) $(CFLAG) $(SOURCES)
+	$(GCC) $(CFLAG) -std=c++11 $(SOURCES)
 	$(GXX) -o simplecar $(OBJS) $(LFLAG)
 	rm *.o
 

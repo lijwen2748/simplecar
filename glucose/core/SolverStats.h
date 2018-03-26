@@ -1,4 +1,4 @@
-/***************************************************************************************[Constants.h]
+/***************************************************************************************[Solver.h]
  Glucose -- Copyright (c) 2009-2014, Gilles Audemard, Laurent Simon
                                 CRIL - Univ. Artois, France
                                 LRI  - Univ. Paris Sud, France (2009-2013)
@@ -47,13 +47,53 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **************************************************************************************************/
 
-#define DYNAMICNBLEVEL
-#define CONSTANTREMOVECLAUSE
+#ifndef SOLVERSTATS_H
+#define	SOLVERSTATS_H
 
-// Constants for clauses reductions
-#define RATIOREMOVECLAUSES 2
+#include "mtl/Map.h"
+#include <string>
+namespace Glucose {
 
+    class SolverStats {
+    protected:
+        Map<std::string, uint64_t> map;
 
-// Constants for restarts
-#define LOWER_BOUND_FOR_BLOCKING_RESTART 10000
+    public:
+
+        SolverStats(std::string all[],int sz) : map() {
+            addStats(all,sz);
+        }
+
+        void addStats(std::string names[],int sz) {
+            for(int i = 0;i<sz;i++)
+                addStat(names[i]);
+        }
+        
+        void addStat(std::string name) {
+            map.insert(name, 0);
+        }
+
+        const uint64_t& operator [] (const std::string name) const {
+            return map[name];
+        }
+
+         uint64_t& operator [] (const std::string name)  {
+            return map[name];
+        }
+
+        void maximize(const std::string name,uint64_t val) {
+            if(val > map[name])
+                map[name] = val;
+        } 
+         
+        void minimize(const std::string name,uint64_t val) {
+            if(val < map[name])
+                map[name] = val;
+        } 
+
+};
+
+}
+
+#endif	/* SOLVERSTATS_H */
 
