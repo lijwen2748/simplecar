@@ -30,7 +30,7 @@ using namespace std;
 using namespace car;
 
 Statistics stats;
-ofstream dot_file;
+ofstream* dot_file = NULL;
 
 void  signal_handler (int sig_num)
 {
@@ -38,8 +38,12 @@ void  signal_handler (int sig_num)
 	stats.print ();
 	
 	//write the dot file tail
-    dot_file << "\n}" << endl;
-	dot_file.close ();
+	if (dot_file != NULL)
+	{
+        (*dot_file) << "\n}" << endl;
+	    dot_file->close ();
+	    delete dot_file;
+	}
 	exit (0);
 }
 
@@ -95,6 +99,7 @@ void check_aiger (int argc, char** argv)
    bool intersect = false;
    bool inv_next = false;
    bool greedy = false;
+   bool gv = false; //to print dot format for graphviz 
    
    
    string input;
@@ -163,10 +168,13 @@ void check_aiger (int argc, char** argv)
   res_file.open (res_file_name.c_str ());
   
   //write the Bad states to dot file
-  
-  dot_file.open (dot_file_name.c_str ());
-  //prepare the dot header
-  dot_file << "graph system {\n\t\t\tnode [shape = point];\n\t\t\tedge [penwidth = 0.1];\n\t\t\tratio = auto;";
+  if (gv)
+  {
+    dot_file = new ofstream ();
+    dot_file->open (dot_file_name.c_str ());
+    //prepare the dot header
+    (*dot_file) << "graph system {\n\t\t\tnode [shape = point];\n\t\t\tedge [penwidth = 0.1];\n\t\t\tratio = auto;";
+  }
   
   stats.count_total_time_start ();
   //get aiger object
@@ -206,8 +214,12 @@ void check_aiger (int argc, char** argv)
    res_file.close ();
    
    //write the dot file tail
-   dot_file << "\n}" << endl;
-   dot_file.close ();
+   if (dot_file != NULL)
+   {
+        (*dot_file) << "\n}" << endl;
+        dot_file->close ();
+        delete dot_file;
+   }
    stats.count_total_time_end ();
    stats.print ();
    return;

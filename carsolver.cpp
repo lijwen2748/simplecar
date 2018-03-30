@@ -26,11 +26,74 @@
 #include <iostream>
 #include <vector>
 using namespace std;
+
+#ifndef ENABLE_PICOSAT  
 //using namespace Minisat;
 using namespace Glucose;
+#endif
 
 namespace car
 {
+ 	#ifdef ENABLE_PICOSAT
+ 	int CARSolver::SAT_lit (int id) {
+ 	    assert (id != 0);
+ 	    while (abs (id) > max_var_) {
+ 	        max_var_ = picosat_inc_max_var (picosat_);
+ 	    }
+ 	    return id;
+ 	}
+ 	
+ 	int CARSolver::lit_id (int id) {
+ 	    return id;
+ 	}
+ 	
+ 	bool CARSolver::solve_assumption () {
+ 	    int res = picosat_sat(picosat_, -1);
+        return res == PICOSAT_SATISFIABLE;
+ 	}
+ 	
+ 	//return the model from SAT solver when it provides SAT
+	std::vector<int> CARSolver::get_model () {
+	    vector<int> res;
+	    res.resize (max_var_, 0);
+	    for (int i = 1; i < max_var_; i ++) {
+	        int val = picosat_deref(picosat_, i);
+            if (val == 1)
+                res[i-1] = i;
+            else if (val == -1)
+                res[i-1] = -i;
+        }
+        
+   		return res;
+	}
+	
+	//return the UC from SAT solver when it provides UNSAT
+ 	std::vector<int> CARSolver::get_uc () {
+ 		std::vector<int> reason;
+		if (verbose_)
+			cout << "get uc: \n";
+		int *p = picosat_failed_assumptions (picosat_);
+		while (*p != 0) {
+		    reason.push_back (*p);
+		    p++;
+		    if (verbose_)
+				cout << *p << ", ";
+		}
+ 		
+		if (verbose_)
+			cout << endl;
+    	return reason;
+  	}
+	
+	void CARSolver::add_clause (std::vector<int>& v) {
+	    for (int i = 0; i < v.size(); i ++) {
+            picosat_add(picosat_, cls[i]);
+        }
+        picosat_add(picosat_, 0);
+ 		
+ 	}
+ 	
+ 	#else
  	
  	Lit CARSolver::SAT_lit (int id)
  	{
@@ -41,12 +104,12 @@ namespace car
  	}
  	
  	int CARSolver::lit_id (Lit l)
-    	{
-    		if (sign(l)) 
-            		return -(var(l) + 1);
-        	else 
-            		return var(l) + 1;
-    	}
+    {
+    	if (sign(l)) 
+            return -(var(l) + 1);
+        else 
+            return var(l) + 1;
+    }
  	
  	bool CARSolver::solve_assumption ()
 	{
@@ -119,6 +182,7 @@ namespace car
  			cout << "Warning: Adding clause does not success\n";
  		
  	}
+ 	#endif
  	
  	void CARSolver::add_clause (int id)
  	{

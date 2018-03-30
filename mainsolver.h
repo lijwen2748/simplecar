@@ -75,6 +75,8 @@ class MainSolver : public CARSolver
 		    CARSolver::add_clause_from_cube (cu);
 		}
 		
+		inline static void clear_frame_flags () {frame_flags_.clear ();}
+		
 	private:
 		//members
 		static int max_flag_;

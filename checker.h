@@ -35,13 +35,14 @@
 #include <fstream>
 
 #define MAX_COUNT 5
+#define MAX_SOLVER_CALL 500
 
 namespace car 
 {
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream& dot, bool greedy, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool greedy, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -63,7 +64,9 @@ namespace car
 		Statistics *stats_;
 		double reduce_ratio_;
 		
-		std::ofstream* dot_;
+		std::ofstream* dot_; //for dot file
+		int solver_call_counter_; //counter for solver_ calls
+		int start_solver_call_counter_; //counter for start_solver_ calls
 		
 		int minimal_update_level_;
 		State* init_;  // the start state for forward CAR
@@ -130,8 +133,7 @@ namespace car
 		std::vector<Cube> frames_intersect_; //for F_
 		Cube cube_intersection (const State *s, Cube& cu, const int frame_level);
 		
-		inline Cube& intersect_of (const int frame_level)
-		{
+		inline Cube& intersect_of (const int frame_level){
 			Cube cu;
 			while (frames_intersect_.size () <= frame_level)
 				frames_intersect_.push_back (cu);
@@ -146,32 +148,90 @@ namespace car
 		void push_back_to (std::vector<std::vector<State*> >& states_seq, const int work, State * new_state);
 		
 		//inline functions
-		inline void create_inv_solver ()
-		{
+		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, inv_next_, verbose_);
 		}
-		inline void delete_inv_solver ()
-		{
+		inline void delete_inv_solver (){
 			delete inv_solver_;
 			inv_solver_ = NULL;
 		}
-		inline void report_safe ()
-		{
+		inline void report_safe (){
 		    safe_reported_ = true;
 		}
-		inline bool safe_reported ()
-		{
+		inline bool safe_reported (){
 		    return safe_reported_;
 		}
 		
-		inline void reset_start_solver ()
-	    {
+		inline void reset_start_solver (){
 	        assert (start_solver_ != NULL);
 	        start_solver_->reset ();
 	    }
 	    
-	    inline void clear_frame () 
-	    {
+	    inline bool reconstruct_start_solver_required () {
+	        start_solver_call_counter_ ++;
+	        if (start_solver_call_counter_ == MAX_SOLVER_CALL) {
+	            start_solver_call_counter_ = 0;
+	            return true;
+	        }
+	        return false;
+	    }
+	    
+	    inline void reconstruct_start_solver () {
+	        delete start_solver_;
+	        start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
+	        for (int i = 0; i < frame_.size (); i ++) {
+	            start_solver_->add_clause_with_flag (frame_[i]);
+	        }
+	    }
+	    
+	    inline bool start_solver_solve_with_assumption (){
+	        if (reconstruct_start_solver_required ())
+	            reconstruct_start_solver ();
+	            
+	        stats_->count_start_solver_SAT_time_start ();
+	    	bool res = start_solver_->solve_with_assumption ();
+	    	stats_->count_start_solver_SAT_time_end ();
+	    	return res;
+	    }
+	    
+	    inline bool reconstruct_solver_required () {
+	        solver_call_counter_ ++;
+	        if (solver_call_counter_ == MAX_SOLVER_CALL) {
+	            solver_call_counter_ = 0;
+	            return true;
+	        }
+	        return false;
+	    }
+	    
+	    inline void reconstruct_solver () {
+	        delete solver_;
+	        MainSolver::clear_frame_flags ();
+	        solver_ = new MainSolver (model_, stats_, reduce_ratio_, verbose_);
+	        for (int i = 0; i < F_.size (); i ++) {
+	            solver_->add_new_frame (F_[i], i, forward_);
+	        }
+	    }
+	    
+	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
+	        if (reconstruct_solver_required ())
+	            reconstruct_solver ();
+	        stats_->count_main_solver_SAT_time_start ();
+	        bool res = solver_->solve_with_assumption (st, p);
+	        stats_->count_main_solver_SAT_time_end ();
+	        return res;
+	    }
+	    
+	    inline bool solver_solve_with_assumption (const Assignment& st, const int frame_level, bool forward){
+	        if (reconstruct_solver_required ())
+	            reconstruct_solver ();
+	        solver_->set_assumption (st, frame_level, forward);
+	        stats_->count_main_solver_SAT_time_start ();
+		    bool res = solver_->solve_with_assumption ();
+		    stats_->count_main_solver_SAT_time_end ();
+		    return res;
+	    }
+	    
+	    inline void clear_frame (){
 	        frame_.clear ();
 	        frame_ = frame2_;
 	        for (int i = 0; i < frame_.size (); i ++)
@@ -180,8 +240,7 @@ namespace car
 	        fc_.clear ();
 	    }
 	    
-	    inline bool dead_state (const State* s)
-	    {
+	    inline bool dead_state (const State* s){
 	        stats_->count_detect_dead_state_time_start ();
 	        bool res = solve_with (const_cast<State*>(s)->s (), -2);
 	        stats_->count_detect_dead_state_time_end ();
@@ -190,36 +249,30 @@ namespace car
 	    
 	    
 	    
-	    inline void print_frame (const Frame& f)
-	    {
+	    inline void print_frame (const Frame& f){
 	        for (int i = 0; i < f.size (); i ++)
 	            car::print (f[i]);
 	    }
 	    
-	    inline void print_F ()
-	    {
+	    inline void print_F (){
 	        std::cout << "-----------F sequence information------------" << std::endl;
-	        for (int i = 0; i < F_.size (); i ++)
-	        {
+	        for (int i = 0; i < F_.size (); i ++){
 	            std::cout << "Frame " << i << ":" << std::endl;
 	            print_frame (F_[i]);
 	        }
 	        std::cout << "-----------End of F sequence information------------" << std::endl;
 	    }
 	    
-	    inline void print_B ()
-	    {
+	    inline void print_B (){
 	        std::cout << "-----------B sequence information------------" << std::endl;
-	        for (int i = 0; i < B_.size (); i ++)
-	        {
+	        for (int i = 0; i < B_.size (); i ++){
 	            for (int j = 0; j < B_[i].size (); j ++)
 	                B_[i][j]->print ();
 	        }
 	        std::cout << "-----------End of B sequence information------------" << std::endl;
 	    }
 	    
-	    inline void print ()
-	    {
+	    inline void print (){
 	        print_F ();
 	        print_B ();
 	    }

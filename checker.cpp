@@ -30,17 +30,13 @@ using namespace std;
 namespace car
 {
     ///////////////////////////////////main functions//////////////////////////////////
-    bool Checker::check (std::ofstream& out)
-	{
-	    for (int i = 0; i < model_->num_outputs (); i ++)
-	    {
+    bool Checker::check (std::ofstream& out){
+	    for (int i = 0; i < model_->num_outputs (); i ++){
 	        bad_ = model_->output (i);
-	        if (bad_ == model_->true_id ())
-	        {
+	        if (bad_ == model_->true_id ()){
 	        	out << "1" << endl;
 	        	out << "b" << i << endl;
-	        	if (evidence_)
-	        	{
+	        	if (evidence_){
 	        	    //print init state
 	        	    out << init_->latches() << endl;
 	        	    //print an arbitary input vector
@@ -49,19 +45,16 @@ namespace car
 	        	    out << endl;
 	        	}
 	        	out << "." << endl;
-	        	if (verbose_)
-	        	{
+	        	if (verbose_){
 	        		cout << "return SAT since the output is true" << endl;
 	        	}
 	        	return true;
 	        }
-	        else if (bad_ == model_->false_id ())
-	        {
+	        else if (bad_ == model_->false_id ()){
 	        	out << "0" << endl;
 	        	out << "b" << endl;
 	        	out << "." << endl;
-	        	if (verbose_)
-	        	{
+	        	if (verbose_){
 	        		cout << "return UNSAT since the output is false" << endl;
 	        	}
 	        	return false;
@@ -81,12 +74,10 @@ namespace car
 	    }
 	}
 	
-	bool Checker::car_check ()
-	{
+	bool Checker::car_check (){
 		if (verbose_)
 			cout << "start check ..." << endl;
-		if (immediate_satisfiable ())
-		{
+		if (immediate_satisfiable ()){
 			if (verbose_)
 				cout << "return SAT from immediate_satisfiable" << endl;
 			return true;
@@ -95,34 +86,27 @@ namespace car
 		initialize_sequences ();
 			
 		int frame_level = 0;
-		while (true)
-		{
+		while (true){
 		    cout << "Frame " << frame_level << endl;
-		    if (verbose_)
-		    {
+		    if (verbose_){
 		        cout << "-----------------Step " << frame_level << "------------------" << endl;
 		        print ();
 		    }
 		    //handle the special start states
 			reset_start_solver ();
 		    clear_frame ();
-		    if (propagate_)
-			{
+		    if (propagate_){
 				if (propagate ())
-				{
 					return false;
-				}
 			}
 			minimal_update_level_ = F_.size () - 1;
-			if (try_satisfy (frame_level))
-			{
+			if (try_satisfy (frame_level)){
 				if (verbose_)
 					cout << "return SAT from try_satisfy at frame level " << frame_level << endl;
 				return true;
 			}
 			//it is true when some reason returned from Main solver is empty
-			if (safe_reported ())
-			{
+			if (safe_reported ()){
 				if (verbose_)
 					cout << "return UNSAT from safe reported" << endl;
 				return false;
@@ -130,10 +114,8 @@ namespace car
 			extend_F_sequence ();
 			frame_level ++;
 			
-			if (invariant_found (frame_level+1))
-			{
-				if (verbose_)
-				{
+			if (invariant_found (frame_level+1)){
+				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
 					print ();
 				}
@@ -165,7 +147,8 @@ namespace car
 		{
 			s->set_initial (true);
 			//////generate dot data
-			(*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
+			if (dot_ != NULL)
+			    (*dot_) << "\n\t\t\t" << s->id () << " [shape = circle, color = red, label = \"Init\", size = 0.1];";
 			//////generate dot data
 			s->set_depth (0);
 		    update_B_sequence (s);
@@ -213,7 +196,8 @@ namespace car
 	                    assert (new_state != NULL);
 	                    
 	                    //////generate dot data
-			            (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
+	                    if (dot_ != NULL)
+			                (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
 			            //////generate dot data
 	                    
 	                    update_B_sequence (new_state);
@@ -287,7 +271,8 @@ namespace car
 			    assert (new_state != NULL);
 			    
 			    //////generate dot data
-			    (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
+			    if (dot_ != NULL)
+			        (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
 			    //////generate dot data
 			    
 			    int new_level = get_new_level (new_state, frame_level);
@@ -432,13 +417,13 @@ namespace car
 	    states_seq[work].push_back (new_state);
 	}
 	
-	Checker::Checker (Model* model, Statistics& stats, ofstream& dot, bool greedy, double ratio, bool forward, bool inv_next, bool propagate, bool evidence, bool verbose, bool intersect, bool minimal_uc, bool detect_dead_state, bool relative, bool relative_full)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool greedy, double ratio, bool forward, bool inv_next, bool propagate, bool evidence, bool verbose, bool intersect, bool minimal_uc, bool detect_dead_state, bool relative, bool relative_full)
 	{
 	    
 		model_ = model;
 		reduce_ratio_ = ratio;
 		stats_ = &stats;
-		dot_ = &dot;
+		dot_ = dot;
 		greedy_ = greedy;
 		solver_ = NULL;
 		start_solver_ = NULL;
@@ -457,6 +442,8 @@ namespace car
 		propagate_ = propagate;
 		intersect_ = intersect;
 		inv_next_ = inv_next;
+		solver_call_counter_ = 0;
+		start_solver_call_counter_ = 0; 
 	}
 	Checker::~Checker ()
 	{
@@ -514,9 +501,7 @@ namespace car
 	
 	bool Checker::immediate_satisfiable ()
 	{
-	    stats_->count_main_solver_SAT_time_start ();
-	    bool res = solver_->solve_with_assumption (init_->s (), bad_);
-	    stats_->count_main_solver_SAT_time_end ();
+	    bool res = solver_solve_with_assumption (init_->s (), bad_);
 	    if (res)
 	    {
 	        Assignment st = solver_->get_model ();
@@ -569,9 +554,7 @@ namespace car
 	{
 		while (true)
 		{
-	    	stats_->count_start_solver_SAT_time_start ();
-	    	bool val = start_solver_->solve_with_assumption ();
-	    	stats_->count_start_solver_SAT_time_end ();
+	    	bool val = start_solver_solve_with_assumption ();
 			if (val)  
 			{
 				State* res = get_new_start_state ();
@@ -635,9 +618,7 @@ namespace car
 	    }
 	    else
 	    {
-	        stats_->count_main_solver_SAT_time_start ();
-	        bool res = solver_->solve_with_assumption (const_cast<State*> (s)-> s(), bad_);
-	        stats_->count_main_solver_SAT_time_end ();
+	        bool res = solver_solve_with_assumption (const_cast<State*> (s)-> s(), bad_);
 	        if (res)
 	        {//s is actually the last_ state
 	            Assignment st = solver_->get_model ();
@@ -646,7 +627,8 @@ namespace car
 	            last_ = new State (const_cast<State*>(s));
 	            last_->set_final (true);
 	            //////generate dot data
-	            (*dot_) << "\n\t\t\t" << last_->id () << " [shape = circle, color = red, label = \"final\", size = 0.01];";
+	            if (dot_ != NULL)
+	                (*dot_) << "\n\t\t\t" << last_->id () << " [shape = circle, color = red, label = \"final\", size = 0.01];";
 	            //////generate dot data
 	            return true;
 	        }
@@ -663,9 +645,7 @@ namespace car
 	    }
 	    else
 	    {
-	        stats_->count_main_solver_SAT_time_start ();
-	        bool res = solver_->solve_with_assumption (cu, bad_);
-	        stats_->count_main_solver_SAT_time_end ();
+	        bool res = solver_solve_with_assumption (cu, bad_);
 	        return res;
 	    }
 	}
@@ -749,10 +729,7 @@ namespace car
 		if (frame_level == -1)
 			return immediate_satisfiable (s);
 				
-		solver_->set_assumption (s, frame_level, forward_);
-		stats_->count_main_solver_SAT_time_start ();
-		bool res = solver_->solve_with_assumption ();
-		stats_->count_main_solver_SAT_time_end ();
+		bool res = solver_solve_with_assumption (s, frame_level, forward_);
 		
 		return res;
 	}
@@ -816,70 +793,50 @@ namespace car
 			else
 			{
 				push_to_frame (cu, frame_level);
+				/*
 				if (relative_ && frame_level < int (F_.size ()))
 					update_frame_by_relative (s, frame_level);
+			    */
 			}
 		}
 
 		
 	}
+
 	
-	void Checker::update_frame_by_relative (const State* s, const int frame_level)
+	void Checker::push_to_frame (Cube& cu2, const int frame_level, const State* s)
 	{
-		if (verbose_)
-			cout << "start update_frame_by_relative" << endl;
-		Cube cu = const_cast<State*> (s)->s();
-		while (true)
-		{
-			if (solve_with (cu, frame_level))
+		//do not quite understand??
+		Cube cu = cube_intersection (s, cu2, frame_level);
+		
+		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : (frame_level == int (F_.size ()) ? frame_ : frame2_);
+		
+		//To add \@ cu to \@ frame, there must be
+		//1. \@ cu does not imply any clause in \@ frame
+		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
+		Frame tmp_frame;
+		stats_->count_clause_contain_time_start ();
+		for (int i = 0; i < frame.size (); i ++)
+		{   
+		
+			if (!imply (frame[i], cu))
+				tmp_frame.push_back (frame[i]);	
+			else if (frame_level < int (F_.size ()))
 			{
-				State *s = get_new_state (NULL);
-				assert (s != NULL);
-				Cube cu2 = s->intersect (cu);
-				delete s;
-				if (cu2.empty ())
-					break;
-				if (!solve_with (cu2, frame_level-1))
-				{
-					bool constraint = false;
-					Cube cu3 = solver_->get_conflict (forward_, minimal_uc_, constraint);
-					if (cu3.empty ())
-					{
-						report_safe ();
-						break;
-					}
-					if (constraint)
-					{
-						update_constraint (cu3);
-						break;
-					}
-					push_to_frame (cu3, frame_level);
-					assert (cu.size () > cu2.size ());
-					cu = cu2;
-				}
-				else
-					break;
+				if (propagate_start_[frame_level] > i)
+					propagate_start_[frame_level] = propagate_start_[frame_level] - 1;
 			}
-			else
-			{
-				bool constraint = false;
-				Cube cu3 = solver_->get_conflict (forward_, minimal_uc_, constraint);
-				if (cu3.empty ())
-				{
-					report_safe ();
-					break;
-				}
-				if (constraint)
-				{
-					update_constraint (cu3);
-					break;
-				}
-				push_to_frame (cu3, frame_level+1);
-				break;
-			}
-		}
-		if (verbose_)
-			cout << "end update_frame_by_relative" << endl;
+		} 
+		stats_->count_clause_contain_time_end ();
+		tmp_frame.push_back (cu);
+		frame = tmp_frame;
+		
+		if (frame_level < int (F_.size ()))
+			solver_->add_clause_from_cube (cu, frame_level, forward_);
+		else if (frame_level == int (F_.size ()))
+			start_solver_->add_clause_with_flag (cu);
+		
+		//frame.push_back (cu);
 	}
 	
 	Cube Checker::cube_intersection (const State *s, Cube& cu, const int frame_level)
@@ -915,106 +872,6 @@ namespace car
 			car::print (res);
 		}
 		return res;
-	}
-	
-	void Checker::push_to_frame (Cube& cu2, const int frame_level, const State* s)
-	{
-		
-		Cube cu = cube_intersection (s, cu2, frame_level);
-		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : (frame_level == int (F_.size ()) ? frame_ : frame2_);
-		
-		//To add \@ cu to \@ frame, there must be
-		//1. \@ cu does not imply any clause in \@ frame
-		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
-		Frame tmp_frame;
-		stats_->count_clause_contain_time_start ();
-		for (int i = 0; i < frame.size (); i ++)
-		{   
-		
-			if (!imply (frame[i], cu))
-				tmp_frame.push_back (frame[i]);	
-			else if (frame_level < int (F_.size ()))
-			{
-				if (propagate_start_[frame_level] > i)
-					propagate_start_[frame_level] = propagate_start_[frame_level] - 1;
-			}
-		} 
-		stats_->count_clause_contain_time_end ();
-		tmp_frame.push_back (cu);
-		frame = tmp_frame;
-		
-		if (frame_level < int (F_.size ()))
-			solver_->add_clause_from_cube (cu, frame_level, forward_);
-		else if (frame_level == int (F_.size ()))
-			start_solver_->add_clause_with_flag (cu);
-		
-		//frame.push_back (cu);
-	}
-	
-	//it is not useful, because the successful attempts are very small
-	void Checker::add_reduced_uc (Cube& cu, int frame_level)
-	{
-		Frame& frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
-		FrameCounter& counter = (frame_level < F_.size ()) ? FC_[frame_level] : fc_;
-		assert (frame.size () == counter.size ());
-		bool success = false;
-		for (int i = 0; i < frame.size (); i ++)
-		{
-			if (counter[i] >= MAX_COUNT)
-				continue;
-			if (frame[i].size () == 1)
-				continue;
-			//stats_->count_clause_contain_time_start ();
-			Cube inter_cu = vec_intersect (frame[i], cu);
-			//stats_->count_clause_contain_time_end ();
-			if (inter_cu.size () == frame[i].size ()) //inter_cu is frame[i] itself
-				continue;
-			if (inter_cu.size () == 0)
-				continue;
-			bool res = false;
-			if (frame_level-1 == -1)
-			{
-				//stats_->count_main_solver_SAT_time_start ();
-	        	res = solver_->solve_with_assumption (inter_cu, bad_);
-	        	//stats_->count_main_solver_SAT_time_end ();
-			}
-			else 
-				res = solve_with (inter_cu, frame_level-1);
-			//stats_->add_intersect_solve_number ();
-			if (!res)
-			{
-			    //stats_->add_intersect_solve_success_number ();
-			    bool con;
-				Cube res_cu = solver_->get_conflict (forward_, minimal_uc_, con);
-				if (res_cu.empty ())
-				{
-					report_safe ();
-					return; 
-				}
-				frame[i] = res_cu;
-				counter[i] = 0;
-				success = true;
-				
-				if (frame_level < int (F_.size ()))
-					solver_->add_clause_from_cube (res_cu, frame_level, forward_);
-				else
-					start_solver_->add_clause_with_flag (res_cu);
-			}
-			else
-			{
-				counter[i] = counter[i] + 1;
-			}
-		}
-		if (!success)
-		{
-			frame.push_back (cu);
-			counter.push_back (0);
-			if (frame_level < int (F_.size ()))
-				solver_->add_clause_from_cube (cu, frame_level, forward_);
-			else
-				start_solver_->add_clause_with_flag (cu);
-		}
-		return;
 	}
 	
 	int Checker::get_new_level (const State *s, const int frame_level)
@@ -1120,42 +977,6 @@ namespace car
 	    }
     }
     
-    Cube Checker::relative_cube (const State* s, const int frame_level)
-    {
-    	bool constraint;
-    	Cube back_up_cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-    	Cube cu = relative_full_ ? const_cast<State*>(s)->s () : back_up_cu;
-    	if (cu.empty ())
-    		return cu;	
-    	Cube cu2;
-    	while (true)
-    	{
-    		solver_->add_clause_from_cube (cu, frame_level, forward_);
-    		if (solve_with (cu, frame_level))
-    		{
-    			cu2 = cube_intersect (cu, solver_->get_model ());
-    			if (cu2.empty ())
-    				break;
-    			if (!solve_with (cu2, frame_level-1))
-    			{
-    				bool con = false;
-    				back_up_cu = solver_->get_conflict (forward_, minimal_uc_, con);
-    				cu = relative_full_ ? cu2 : back_up_cu;
-    			}
-    			else
-    				break;
-    		}
-    		else
-    		{
-    			bool con = false;
-    			back_up_cu = solver_->get_conflict (forward_, minimal_uc_, con);
-    			//push_to_frame (back_up_cu, frame_level);
-    			push_to_frame (back_up_cu, frame_level+1);
-    			break;
-    		}
-    	}
-    	return back_up_cu;
-    }
 	
 	void Checker::print_evidence (ofstream& out)
 	{
