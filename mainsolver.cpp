@@ -57,10 +57,10 @@ namespace car
 		assumption_.clear ();
 		for (Assignment::const_iterator it = st.begin (); it != st.end (); it++)
 		{
-			assumption_.push (SAT_lit (*it));
+			assumption_push (*it);
 		}
 		
-		assumption_.push (SAT_lit (id));
+		assumption_push (id);
 				
 	}
 	
@@ -69,14 +69,14 @@ namespace car
 		assumption_.clear ();
 		//Assignment a = const_cast<State*> (st)-> s();
 		if (frame_level > -1)
-			assumption_.push (SAT_lit (flag_of (frame_level)));
+			assumption_push (flag_of (frame_level));
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
 			if (forward)
-				assumption_.push (SAT_lit (model_->prime (id)));
+				assumption_push (model_->prime (id));
 			else
-				assumption_.push (SAT_lit (id));
+				assumption_push (id);
 		}
 				
 	}
@@ -222,11 +222,11 @@ namespace car
 		    assumption_.clear ();
 		    for (int j = 0; j < pos; j ++)
 		    {
-			    assumption_.push (SAT_lit (cu[sz-j]));
+			    assumption_push (cu[sz-j]);
 		    }
 		    for (int j = pos+1; j < cu.size (); j ++)
 		    {
-			    assumption_.push (SAT_lit (cu[sz-j]));
+			    assumption_push (cu[sz-j]);
 		    }
 		    stats_->count_reduce_uc_SAT_time_start ();
 		    if (!solve_with_assumption ())

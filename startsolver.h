@@ -40,7 +40,7 @@ namespace car {
             {
                 for (int i = 0; i < const_cast<Model*>(m)->latches_start (); i ++)
                     add_clause (const_cast<Model*>(m)->element (i));
-                assumption_.push (SAT_lit (bad));
+                assumption_push (bad);
             }
             
             forward_ = forward;
@@ -61,12 +61,12 @@ namespace car {
         	int threshold = forward_ ? 1 : 0;
             if (assumption_.size () <= threshold)
             {
-                assumption_.push (SAT_lit (flag_));
+                assumption_push (flag_);
                 return;
             }
-            assumption_.pop ();
-            assumption_.push (~SAT_lit (flag_));
-            assumption_.push (SAT_lit (++flag_));
+            assumption_pop ();
+            assumption_push (-flag_);
+            assumption_push (++flag_);
         }
         inline void add_clause_with_flag (const Cube& cu)
         {

@@ -27,7 +27,7 @@
 
 #ifdef ENABLE_PICOSAT
 extern "C" {
-#include "picosat.h"
+#include "picosat/picosat.h"
 }
 #else
 //#include "minisat/core/Solver.h"
@@ -35,11 +35,12 @@ extern "C" {
 #endif
 
 #include <vector>
+#include <assert.h>
 
 namespace car
 {
     #ifdef ENABLE_PICOSAT
-    class CARSolver {
+    class CARSolver 
     #else
 	class CARSolver : public Glucose::Solver 
 	#endif
@@ -86,9 +87,24 @@ namespace car
  		int lit_id (Glucose::Lit);  //return the id of SAT lit
  		#endif
  		
- 		inline int size () {return clauses.size ();}
+ 		//inline int size () {return clauses.size ();}
  		inline void clear_assumption () {assumption_.clear ();}
  		
+ 		inline void assumption_push (int id) {
+ 			#ifdef ENABLE_PICOSAT
+ 			assumption_.push_back (id);
+ 			#else
+ 			assumption_.push (SAT_lit (id));
+ 			#endif
+ 		}
+ 		
+ 		inline void assumption_pop () {
+ 			#ifdef ENABLE_PICOSAT
+ 			assumption_.pop_back ();
+ 			#else
+ 			assumption_.pop ();
+ 			#endif
+ 		}
  		
  		//printers
  		void print_clauses ();
@@ -119,7 +135,7 @@ namespace car
  		}
  	#ifdef ENABLE_PICOSAT
  	private:
- 	    PicoSAT* picosat_;
+ 	   PicoSAT* picosat_;
  	#endif
 	};
 }

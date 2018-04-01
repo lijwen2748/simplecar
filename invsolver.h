@@ -86,15 +86,21 @@ namespace car
 			
 			inline void update_assumption_for_constraint (const int frame_flag)
 			{
-				assumption_.push (SAT_lit (frame_flag));
+				assumption_push (frame_flag);
 			}
 			
 			inline void release_constraint_and ()
 			{
+				#ifdef ENABLE_PICOSAT
+				int l = assumption_.back ();
+				assumption_pop ();
+ 				assumption_push (-l);
+				#else
 				//Minisat::Lit l = assumption_.last ();
 				Glucose::Lit l = assumption_.last ();
 				assumption_.pop ();
  				assumption_.push (~l);
+ 				#endif
 			}
 			
 			inline int new_var () {return ++id_aiger_max_;}

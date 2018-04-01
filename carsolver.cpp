@@ -37,8 +37,8 @@ namespace car
  	#ifdef ENABLE_PICOSAT
  	int CARSolver::SAT_lit (int id) {
  	    assert (id != 0);
- 	    while (abs (id) > max_var_) {
- 	        max_var_ = picosat_inc_max_var (picosat_);
+ 	    while (abs (id) > picosat_variables (picosat_)) {
+ 	        picosat_inc_max_var (picosat_);
  	    }
  	    return id;
  	}
@@ -48,6 +48,9 @@ namespace car
  	}
  	
  	bool CARSolver::solve_assumption () {
+ 		for (int i = 0; i < assumption_.size (); i ++) {
+ 			picosat_assume (picosat_, assumption_[i]);
+ 		}
  	    int res = picosat_sat(picosat_, -1);
         return res == PICOSAT_SATISFIABLE;
  	}
@@ -55,8 +58,9 @@ namespace car
  	//return the model from SAT solver when it provides SAT
 	std::vector<int> CARSolver::get_model () {
 	    vector<int> res;
-	    res.resize (max_var_, 0);
-	    for (int i = 1; i < max_var_; i ++) {
+	    int max_var = picosat_variables (picosat_);
+	    res.resize (max_var, 0);
+	    for (int i = 1; i < max_var; i ++) {
 	        int val = picosat_deref(picosat_, i);
             if (val == 1)
                 res[i-1] = i;
@@ -72,12 +76,12 @@ namespace car
  		std::vector<int> reason;
 		if (verbose_)
 			cout << "get uc: \n";
-		int *p = picosat_failed_assumptions (picosat_);
+		const int *p = picosat_failed_assumptions (picosat_);
 		while (*p != 0) {
 		    reason.push_back (*p);
-		    p++;
 		    if (verbose_)
 				cout << *p << ", ";
+		    p++; 
 		}
  		
 		if (verbose_)
@@ -87,7 +91,7 @@ namespace car
 	
 	void CARSolver::add_clause (std::vector<int>& v) {
 	    for (int i = 0; i < v.size(); i ++) {
-            picosat_add(picosat_, cls[i]);
+            picosat_add(picosat_, v[i]);
         }
         picosat_add(picosat_, 0);
  		
@@ -234,6 +238,7 @@ namespace car
  	
  	void CARSolver::print_clauses ()
 	{
+		#ifndef ENABLE_PICOSAT
 		cout << "clauses in SAT solver: \n";
 		for (int i = 0; i < clauses.size (); i ++)
 		{
@@ -242,6 +247,7 @@ namespace car
 				cout << lit_id (c[j]) << " ";
 			cout << "0 " << endl;
 		}
+		#endif
 	}
 	
 	void CARSolver::print_assumption ()
