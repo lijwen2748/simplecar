@@ -76,7 +76,8 @@ namespace car
  		std::vector<int> reason;
 		if (verbose_)
 			cout << "get uc: \n";
-		const int *p = picosat_failed_assumptions (picosat_);
+		//const int *p = picosat_failed_assumptions (picosat_);
+		const int *p = picosat_mus_assumptions (picosat_, 0, NULL, 0);
 		while (*p != 0) {
 		    reason.push_back (*p);
 		    if (verbose_)

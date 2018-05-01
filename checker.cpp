@@ -88,6 +88,13 @@ namespace car
 		int frame_level = 0;
 		while (true){
 		    cout << "Frame " << frame_level << endl;
+		    //print the number of clauses in each frame
+		    for (int i = 0; i < F_.size (); i ++) {
+		    	cout << F_[i].size () << " ";
+		    }
+		    cout << endl;
+		    //end of print
+		    
 		    if (verbose_){
 		        cout << "-----------------Step " << frame_level << "------------------" << endl;
 		        print ();
