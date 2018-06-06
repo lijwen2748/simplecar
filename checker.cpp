@@ -397,11 +397,28 @@ namespace car
 	*/
 	State* Checker::pick_up_one_state (std::vector<State*>& states)
 	{
+	    /*
 	    assert (!states.empty ());
 	    State *res = states.back ();
 	    states.pop_back ();
 	    return res;
+	    */
+	    
+	    assert (!states.empty ());
+	    State *res = states[0];
+	    int index = 0;
+	    for (int i = 1; i < states.size (); i ++) {
+	        if (states[i]->depth () < res->depth ()) {
+	            res = states[i];
+	            index = i;
+	        }
+	    }
+	    //delete res from states
+	    states.erase (states.begin () + index);
+	    return res;
+	    
 	}
+	
 	
 	/*
 	* Push \@ new_state into \@states_seq[\@ work]
