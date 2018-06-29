@@ -51,6 +51,7 @@ class Statistics
             reduce_uc_size_ = 0;
             num_clause_contain_ = 0;
         	num_state_contain_ = 0;
+        	num_clause_contain_success_ = 0;
         	time_clause_contain_ = 0.0;
         	time_state_contain_ = 0.0;
         	num_detect_dead_state_SAT_calls_ = 0;
@@ -66,22 +67,25 @@ class Statistics
             std::cout << "      Num of main solver SAT Calls: " << num_main_solver_SAT_calls_ << std::endl;
             std::cout << "      Num of inv solver SAT Calls: " << num_inv_solver_SAT_calls_ << std::endl;
             std::cout << "      Num of start solver SAT Calls: " << num_start_solver_SAT_calls_ << std::endl;
-            std::cout << "      Num of reduce uc SAT Calls: " << num_reduce_uc_SAT_calls_ << std::endl;
-            std::cout << "      Num of detect dead state SAT Calls: " << num_detect_dead_state_SAT_calls_ << std::endl;
+            //std::cout << "      Num of reduce uc SAT Calls: " << num_reduce_uc_SAT_calls_ << std::endl;
+            //std::cout << "      Num of detect dead state SAT Calls: " << num_detect_dead_state_SAT_calls_ << std::endl;
             std::cout << "Time of total SAT Calls: " << time_SAT_calls_ << std::endl;
             std::cout << "      Time of main solver SAT Calls: " << time_main_solver_SAT_calls_ << std::endl;
             std::cout << "      Time of inv solver SAT Calls: " << time_inv_solver_SAT_calls_ << std::endl;
             std::cout << "      Time of start solver SAT Calls: " << time_start_solver_SAT_calls_ << std::endl;
-            std::cout << "      Time of reduce uc SAT Calls: " << time_reduce_uc_SAT_calls_ << std::endl;
-            std::cout << "      Time of detect dead state SAT Calls: " << time_detect_dead_state_SAT_calls_ << std::endl;
-            std::cout << "Num of detect dead state success: " << num_detect_dead_state_success_ << std::endl;
+            //std::cout << "      Time of reduce uc SAT Calls: " << time_reduce_uc_SAT_calls_ << std::endl;
+            //std::cout << "      Time of detect dead state SAT Calls: " << time_detect_dead_state_SAT_calls_ << std::endl;
+           // std::cout << "Num of detect dead state success: " << num_detect_dead_state_success_ << std::endl;
             std::cout << "Num of clause contain: " << num_clause_contain_ << std::endl;
             std::cout << "Time of clause contain: " << time_clause_contain_ << std::endl;
+            std::cout << "Num of clause contain success: " << num_clause_contain_success_ << std::endl;
+            std::cout << "Clause contain successful rate: " << (double)num_clause_contain_success_/num_clause_contain_ << std::endl;
             std::cout << "Num of state contain: " << num_state_contain_ << std::endl;
             std::cout << "Time of state contain: " << time_state_contain_ << std::endl;
-            std::cout << "Sum of original uc: " << orig_uc_size_ << std::endl;
-            std::cout << "Sum of reduce uc: " << reduce_uc_size_ << std::endl;
-            std::cout << "Reduce uc ratio: " << 1-(reduce_uc_size_/double (orig_uc_size_)) << std::endl;
+            
+            //std::cout << "Sum of original uc: " << orig_uc_size_ << std::endl;
+            //std::cout << "Sum of reduce uc: " << reduce_uc_size_ << std::endl;
+            //std::cout << "Reduce uc ratio: " << 1-(reduce_uc_size_/double (orig_uc_size_)) << std::endl;
             std::cout << "Total Time: " << time_total_ << std::endl;
         }
         inline void count_SAT_time_start ()
@@ -186,6 +190,9 @@ class Statistics
 	        time_clause_contain_ += duration;
         	num_clause_contain_ += 1;
         }
+        inline void count_clause_contain_success () {
+            num_clause_contain_success_ += 1;
+        }
         inline void count_state_contain_time_start ()
         {
         	begin_ = clock ();
@@ -197,6 +204,7 @@ class Statistics
 	        time_state_contain_ += duration;
         	num_state_contain_ += 1;
         }
+        
         inline void count_detect_dead_state_time_start ()
         {
             begin_ = clock ();
@@ -232,6 +240,7 @@ class Statistics
         
         int num_clause_contain_;
         int num_state_contain_;
+        int num_clause_contain_success_;
         double time_clause_contain_;
         double time_state_contain_;
         int num_detect_dead_state_SAT_calls_;

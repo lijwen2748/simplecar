@@ -60,7 +60,7 @@ namespace car
 		std::vector<int> assumption_;
 		#else
 		//Minisat::vec<Minisat::Lit> assumption_;  //Assumption for SAT solver
-		Glucose::vec<Glucose::Lit> assumption_;  //Assumption for SAT solver
+		Glucose::vec<Glucose::Lit> assumption_;  //Assumption for SAT solver     
 		#endif
 		
 		//functions

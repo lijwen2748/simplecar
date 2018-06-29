@@ -177,4 +177,255 @@
 			cout << "end update_frame_by_relative" << endl;
 	}
 	
+	void MainSolver::try_reduce (Cube& cu)
+	{
+		int try_times = int ((cu.size ()) * reduce_ratio_);
+		int i = 0;
+		int sz = cu.size ()-1;
+		hash_set<int> tried;
+		for (; i < try_times; i ++)
+		{
+			int pos = i;
+			while (tried.find (cu[pos]) != tried.end ())
+			{
+				pos ++;
+				if (pos >= cu.size ())
+					return;
+			}
+			
+		    assumption_.clear ();
+		    for (int j = 0; j < pos; j ++)
+		    {
+			    assumption_push (cu[sz-j]);
+		    }
+		    for (int j = pos+1; j < cu.size (); j ++)
+		    {
+			    assumption_push (cu[sz-j]);
+		    }
+		    stats_->count_reduce_uc_SAT_time_start ();
+		    if (!solve_with_assumption ())
+		    {
+		        cu = get_uc ();
+		        try_times = int ((cu.size ()) * reduce_ratio_);
+		        i = -1;
+		        sz = cu.size ()-1;
+		    }
+		    else
+		    	tried.insert (cu[pos]);
+		    stats_->count_reduce_uc_SAT_time_end ();
+		}
+	}
+	
+	/*
+	* If the UC returned from SAT solver does not contain frame flags, 
+	* we consider it is a permenant constraint.
+	*/
+	void Checker::update_constraint (Cube& cu) {
+	    if (cu.empty ())
+	    {
+	        report_safe ();
+	        return;
+	    }
+	    Cube to_add = cu;
+	    constraints_.push_back (to_add);
+	    model_->update_constraint (to_add);
+	    start_solver_->update_constraint (to_add);
+	    solver_->update_constraint (to_add);
+    }
+    
+    void Checker::remove_dead_states ()
+    {
+        for (int i = 0; i < B_.size (); i ++)
+	    {
+	        vector<State*> tmp;
+	        for (int j = 0; j < B_[i].size (); j ++)
+	        {
+	            int k = B_[i][j]->detect_dead_start ();
+	            //if (k == constraints_.size ())
+	                //continue;
+	            for (; k < constraints_.size (); k ++)
+	            {
+	                if (B_[i][j]->imply (constraints_[k]))
+	                    break;
+	            }
+	        	if (k == constraints_.size ())
+	        	{
+	        	    B_[i][j]->set_detect_dead_start (constraints_.size ());
+	        	    tmp.push_back (B_[i][j]);
+	        	    
+	        	}
+	        	else
+	        	    delete B_[i][j];
+	        }
+	        B_[i] = tmp;
+	    }
+    }
+    
+    	    inline bool dead_state (const State* s){
+	        stats_->count_detect_dead_state_time_start ();
+	        bool res = solve_with (const_cast<State*>(s)->s (), -2);
+	        stats_->count_detect_dead_state_time_end ();
+	        return !res;
+	    }
+
+    /*
+	* Initialize \@ state_seq by filling all states of \@ B_ into state_seq[0]
+	* 
+	*/
+	void Checker::initial_greedy_state_sequence (std::vector<std::vector<State*> > &state_seq)
+	{
+	    assert (state_seq.size () == 0);
+	    vector<State *> v;
+	    for (int i = 0; i < B_.size (); i ++)
+	    {
+	        for (int j = 0; j < B_[i].size (); j ++)
+	            v.push_back (B_[i][j]);
+	    }
+	    state_seq.push_back (v);   
+	}
+	
+	/*
+	* Pick up one state from the vector \@ states
+	* There are different ways to pick up: Right now we just use the simplest one -- choose the last state 
+	* After the state is picked up, it must also be removed from the vector
+	*
+	*/
+	State* Checker::pick_up_one_state (std::vector<State*>& states)
+	{
+	    /*
+	    assert (!states.empty ());
+	    State *res = states.back ();
+	    states.pop_back ();
+	    return res;
+	    */
+	    
+	    assert (!states.empty ());
+	    State *res = states[0];
+	    int index = 0;
+	    for (int i = 1; i < states.size (); i ++) {
+	        if (states[i]->depth () < res->depth ()) {
+	            res = states[i];
+	            index = i;
+	        }
+	    }
+	    //delete res from states
+	    states.erase (states.begin () + index);
+	    return res;
+	    
+	}
+	
+	
+	/*
+	* Push \@ new_state into \@states_seq[\@ work]
+	*
+	*/
+	void Checker::push_back_to (std::vector<std::vector<State*> >& states_seq, const int work, State* new_state)
+	{
+	    while (states_seq.size () <= work)
+	    {
+	        vector<State *> v;
+	        states_seq.push_back (v);
+	    }
+	    states_seq[work].push_back (new_state);
+	}
+	
+	
+	/*
+	* The implementation of the attempt to migrate A* algorithm for the search
+	* The results turn out to be not quite successful.
+	* Leave it for future exploration.
+	*/
+	int Checker::greedy_search (const int frame_level) {
+	    vector<vector<State*> > states_seq;
+	    initial_greedy_state_sequence (states_seq);
+	    int work = 0;
+	    while (true) {
+	        //all states have been explored, but cannot find a solution
+	        if (work == 0 && states_seq[work].empty ())
+	            return -1;
+	        if (states_seq[work].empty ())
+	            work --;
+	        else {
+	            State* s = pick_up_one_state (states_seq[work]);
+	            bool check_res = (frame_level-work == -1) ? immediate_satisfiable (s) : solve_with (const_cast<State*>(s)->s (), frame_level-work);
+	            if (check_res) {
+	                if (frame_level - work == -1)
+	                    return 1;
+	                State* new_state = get_new_state (s);
+	                assert (new_state != NULL);
+	                    
+	                //////generate dot data
+	                if (dot_ != NULL)
+			            (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
+			        //////generate dot data
+	                    
+	                update_B_sequence (new_state);
+	                push_back_to (states_seq, work, s);
+	                int new_level = get_new_level (new_state, frame_level-work);
+	                    	                    
+	                work = frame_level - new_level;
+	                push_back_to (states_seq, work, new_state); 
+	            }
+	            else {
+	                update_F_sequence (s, frame_level-work+1);
+	                if (safe_reported ())
+			            return 0;
+	                if (work > 0)
+	                    push_back_to (states_seq, work-1, s);
+	                    
+	            }
+	                
+	        }
+	    }
+	}
+	
+	
+	bool Checker::propagate () 
+	{
+		if (verbose_)
+			cout << "start propagate " << endl;
+		for (int i = minimal_update_level_+1; i < F_.size (); i ++)
+		{
+			if (propagate (i))
+			{
+				if (verbose_)
+				{
+					cout << "return UNSAT from propagate found at frame " << i << endl;
+					print ();
+				}
+				return true;
+			}
+		}
+		if (verbose_)
+			cout << "end propagate " << endl;
+		return false;
+	}
+	
+	bool Checker::propagate (int pos)
+	{
+		Frame &frame = F_[pos];
+		int sz = frame.size ();
+		for (int i = propagate_start_[pos]; i < sz; i ++)
+		{
+			if (!solve_with (frame[i], pos))
+			{
+				push_to_frame (frame[i], pos+1);
+				propagate_start_[pos] = propagate_start_[pos] + 1;
+			}
+			else
+			{
+				Cube cu = frame[i];
+				for (int j = i; j < frame.size ()-1; j++)
+					frame[j] = frame[j+1];
+				frame[frame.size ()-1] = cu;
+				sz --;
+				i --;
+			}
+		}
+		propagate_start_[pos] = sz;
+		return false;
+	}
+	
+	
+	
 	

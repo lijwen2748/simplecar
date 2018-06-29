@@ -31,15 +31,29 @@ using namespace car;
 
 Statistics stats;
 ofstream* dot_file = NULL;
+Model * model = NULL;
+Checker *ch = NULL;
 
 void  signal_handler (int sig_num)
 {
+    if (ch != NULL) {
+        cout << "Last Frame " << endl;
+		
+		ch->print_frames_sizes ();
+	    cout << "frame_ size:" << ch->frame_size () << endl;
+	    delete ch;
+	    ch = NULL;
+	}
+	
+	if (model != NULL) {
+	    delete model;
+	    model = NULL;
+	}
 	stats.count_total_time_end ();
 	stats.print ();
 	
 	//write the dot file tail
-	if (dot_file != NULL)
-	{
+	if (dot_file != NULL) {
         (*dot_file) << "\n}" << endl;
 	    dot_file->close ();
 	    delete dot_file;
@@ -49,11 +63,11 @@ void  signal_handler (int sig_num)
 
 void print_usage () 
 {
-  printf ("Usage: simplecar <-f|-b> <-p|-g|-e|-v|-h> <aiger file> <output directory>\n");
+  printf ("Usage: simplecar <-f|-b> <-e|-v|-h> <aiger file> <output directory>\n");
   printf ("       -f          forward checking (Default = backward checking)\n");
   printf ("       -b          backward checking \n");
-  printf ("       -p          enable propagation (Default = off)\n");
-  printf ("       -g          enable greedy search (Default = off)\n");
+  //printf ("       -p          enable propagation (Default = off)\n");
+  //printf ("       -g          enable greedy search (Default = off)\n");
   printf ("       -e          print witness (Default = off)\n");
   printf ("       -v          print verbose information (Default = off)\n");
   printf ("       -h          print help information\n");
@@ -91,14 +105,6 @@ void check_aiger (int argc, char** argv)
    bool verbose = false;
    bool evidence = false;
    bool minimal_uc = false;
-   double reduce_ratio = 0.5;
-   bool detect_dead_state = false;
-   bool relative = false;
-   bool relative_full = false;
-   bool propagate = false;
-   bool intersect = false;
-   bool inv_next = false;
-   bool greedy = false;
    bool gv = false; //to print dot format for graphviz 
    
    
@@ -112,10 +118,6 @@ void check_aiger (int argc, char** argv)
    			forward = true;
    		else if (strcmp (argv[i], "-b") == 0)
    			forward = false;
-   		else if (strcmp (argv[i], "-p") == 0)
-   			propagate = true;
-   	    else if (strcmp (argv[i], "-g") == 0)
-   	        greedy = true;
    		else if (strcmp (argv[i], "-v") == 0)
    			verbose = true;
    		else if (strcmp (argv[i], "-e") == 0)
@@ -137,17 +139,6 @@ void check_aiger (int argc, char** argv)
    }
    if (!input_set || !output_dir_set)
    		print_usage ();
-   /*
-  if (argc <= 3 || argc > 4)
-	  print_usage ();
-
-  if (strcmp (argv[1], "-f") == 0)
-	  forward = true;
-  else if (strcmp (argv[1], "-b") == 0)
-	  forward = false;
-  else
-	  print_usage ();
-	*/
 
   //std::string output_dir (argv[3]);
   if (output_dir.at (output_dir.size()-1) != '/')
@@ -192,7 +183,7 @@ void check_aiger (int argc, char** argv)
      aiger_reencode(aig);
      
    stats.count_model_construct_time_start ();
-   Model* model = new Model (aig);
+   model = new Model (aig);
    stats.count_model_construct_time_end ();
    
    if (verbose)
@@ -204,13 +195,14 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   Checker ch (model, stats, dot_file, greedy, reduce_ratio, forward, inv_next, propagate, evidence, verbose, intersect, minimal_uc, detect_dead_state, relative, relative_full);
+   ch = new Checker (model, stats, dot_file, forward, evidence, verbose, minimal_uc);
 
    aiger_reset(aig);
    
-   bool res = ch.check (res_file);
+   bool res = ch->check (res_file);
     
    delete model;
+   model = NULL;
    res_file.close ();
    
    //write the dot file tail
@@ -219,9 +211,12 @@ void check_aiger (int argc, char** argv)
         (*dot_file) << "\n}" << endl;
         dot_file->close ();
         delete dot_file;
+        dot_file = NULL;
    }
    stats.count_total_time_end ();
    stats.print ();
+   delete ch;
+   ch = NULL;
    return;
 }
 

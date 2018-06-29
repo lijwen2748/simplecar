@@ -33,11 +33,10 @@ namespace car
 	int MainSolver::max_flag_ = -1;
 	vector<int> MainSolver::frame_flags_;
 	
-	MainSolver::MainSolver (Model* m, Statistics* stats, double ratio, const bool verbose) 
+	MainSolver::MainSolver (Model* m, Statistics* stats, const bool verbose) 
 	{
 	    verbose_ = verbose;
 	    stats_ = stats;
-	    reduce_ratio_ = ratio;
 		model_ = m;
 		if (max_flag_ == -1)
 			max_flag_ = m->max_id() + 1;
@@ -67,9 +66,7 @@ namespace car
 	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward)
 	{
 		assumption_.clear ();
-		//Assignment a = const_cast<State*> (st)-> s();
-		if (frame_level > -1)
-			assumption_push (flag_of (frame_level));
+		
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
@@ -78,7 +75,9 @@ namespace car
 			else
 				assumption_push (id);
 		}
-				
+		
+		if (frame_level > -1)
+			assumption_push (flag_of (frame_level));		
 	}
 	
 	Assignment MainSolver::get_state (const bool forward, const bool partial)
@@ -205,41 +204,7 @@ namespace car
 	
 	void MainSolver::try_reduce (Cube& cu)
 	{
-		int try_times = int ((cu.size ()) * reduce_ratio_);
-		int i = 0;
-		int sz = cu.size ()-1;
-		hash_set<int> tried;
-		for (; i < try_times; i ++)
-		{
-			int pos = i;
-			while (tried.find (cu[pos]) != tried.end ())
-			{
-				pos ++;
-				if (pos >= cu.size ())
-					return;
-			}
-			
-		    assumption_.clear ();
-		    for (int j = 0; j < pos; j ++)
-		    {
-			    assumption_push (cu[sz-j]);
-		    }
-		    for (int j = pos+1; j < cu.size (); j ++)
-		    {
-			    assumption_push (cu[sz-j]);
-		    }
-		    stats_->count_reduce_uc_SAT_time_start ();
-		    if (!solve_with_assumption ())
-		    {
-		        cu = get_uc ();
-		        try_times = int ((cu.size ()) * reduce_ratio_);
-		        i = -1;
-		        sz = cu.size ()-1;
-		    }
-		    else
-		    	tried.insert (cu[pos]);
-		    stats_->count_reduce_uc_SAT_time_end ();
-		}
+		
 	}
 	
 	

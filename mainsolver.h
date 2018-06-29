@@ -37,7 +37,7 @@ namespace car{
 class MainSolver : public CARSolver 
 {
 	public:
-		MainSolver (Model*, Statistics* stats, double ratio = 1.0, const bool verbose = false);
+		MainSolver (Model*, Statistics* stats, const bool verbose = false);
 		~MainSolver (){}
 		
 		//public funcitons
@@ -85,7 +85,6 @@ class MainSolver : public CARSolver
 		Model* model_;
 		
 		Statistics* stats_;
-		double reduce_ratio_;
 		
 		//bool verbose_;
 		

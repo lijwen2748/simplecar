@@ -34,11 +34,11 @@ namespace car
 	class InvSolver : public CARSolver
 	{
 		public:
-			InvSolver (const Model* m, bool inv_next = false, bool verbose = false) : id_aiger_max_ (const_cast<Model*>(m)->max_id ())
+			InvSolver (const Model* m, bool verbose = false) : id_aiger_max_ (const_cast<Model*>(m)->max_id ())
 			{
 				model_ = const_cast<Model*> (m);
 			    verbose_ = verbose;
-			    int end = inv_next ? model_->size () : model_->outputs_start ();
+			    int end = model_->outputs_start ();
 			    for (int i = 0; i < end ; i ++)
                     add_clause (model_->element (i));
 			}
@@ -51,7 +51,7 @@ namespace car
 				return solve_assumption ();
 			}
 			
-			inline void add_constraint_or (const Frame &frame, bool inv_next = false, bool forward = false)
+			inline void add_constraint_or (const Frame &frame, bool forward = false)
 			{
 				std::vector<int> v;
  				for (int i = 0; i < frame.size (); i ++)
@@ -60,14 +60,14 @@ namespace car
  					v.push_back (clause_flag);
  					for (int j = 0; j < frame[i].size (); j ++)
  					{
- 						int id = (inv_next && forward) ? model_->prime (frame[i][j]) : frame[i][j];
+ 						int id = frame[i][j];
  						add_clause (-clause_flag, id);
  					}
  				}
  				add_clause (v);
 			}
 			
-			inline void add_constraint_and (const Frame &frame, bool inv_next = false, bool forward = false)
+			inline void add_constraint_and (const Frame &frame, bool forward = false)
 			{
 				int frame_flag = new_var ();
  				for (int i = 0; i < frame.size (); i ++)
@@ -75,7 +75,7 @@ namespace car
  					std::vector<int> v;
  					for (int j = 0; j < frame[i].size (); j ++)
  					{
- 						int id = (inv_next && !forward) ? model_->prime (frame[i][j]) : frame[i][j];
+ 						int id = frame[i][j];
  						v.push_back (-id);
  					}
  					v.push_back (-frame_flag);

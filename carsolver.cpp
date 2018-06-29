@@ -187,6 +187,7 @@ namespace car
  			cout << "Warning: Adding clause does not success\n";
  		
  	}
+ 	
  	#endif
  	
  	void CARSolver::add_clause (int id)

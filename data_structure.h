@@ -83,6 +83,10 @@
  		inline void set_next (State* nx) {next_ = nx;}
  		static void set_num_inputs_and_latches (const int n1, const int n2); 
  		
+ 		inline void set_nexts (std::vector<int>& nexts) {nexts_ = nexts; computed_next_ = true;}
+ 		inline std::vector<int>& nexts () {return nexts_;}
+ 		inline bool computed_next () const {return computed_next_;}
+ 		
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
@@ -95,6 +99,9 @@
  		bool final_; //whether it is an final state
  		int id_;     //the state id
  		int dep_;    //the length from the starting state
+ 		
+ 		bool computed_next_;  //flag to label whether the next part of the state has been computed
+ 		std::vector<int> nexts_; //the next part which can be decided by the state without input
  		
  		
  		int detect_dead_start_; //to store the start position to check whether it is a dead state

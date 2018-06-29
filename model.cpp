@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <assert.h>
+#include <vector>
 
 using namespace std;
 
@@ -41,7 +42,6 @@ namespace car{
 		num_ands_ = aig->num_ands;
 		num_constraints_ = aig->num_constraints;
 		num_outputs_ = aig->num_outputs;
-		flag_for_constraint_ = 0; //will set in create_constraints_for_latches
 		
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
 		max_id_ = aig->maxvar+2;
@@ -123,30 +123,30 @@ namespace car{
 	{
 	    //contraints, outputs and latches gates are stored in order, 
 	    //as the need for start solver construction
-		hash_set<unsigned> exist_gates, gates;
+	    hash_set<unsigned> exist_gates;
+		vector<unsigned> gates;
+		gates.resize (max_id_+1, 0);
 		//create clauses for constraints
 		collect_necessary_gates (aig, aig->constraints, aig->num_constraints, exist_gates, gates);
 		
-		for (hash_set<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
+		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
 		{
+		    if (*it == 0) continue; 
 			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
 		
-		//if several latches' next value points to a same one, the values of these latches also have the constraint
-		//But NOTE that all states in the aiger model must satisfy this constraint, EXCEPT the initial state
-		//Also it is needed to add new contraints later
-		create_constraints_for_latches ();
 		
 		set_outputs_start ();
 		
 		//create clauses for outputs
-		gates.clear ();
+		gates.resize (max_id_+1, 0);
 		collect_necessary_gates (aig, aig->outputs, aig->num_outputs, exist_gates, gates);
 		
-		for (hash_set<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
+		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
 		{
+		    if (*it == 0) continue;
 			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
@@ -155,10 +155,11 @@ namespace car{
 		set_latches_start ();
 		
 		//create clauses for latches
-		gates.clear ();
+		gates.resize (max_id_+1, 0);
 		collect_necessary_gates (aig, aig->latches, aig->num_latches, exist_gates, gates, true);
-		for (hash_set<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
+		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
 		{
+		    if (*it == 0) continue;
 			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
@@ -169,55 +170,9 @@ namespace car{
 		cls_.push_back (clause (-false_));
 	}
 	
-	void Model::create_constraints_for_latches ()
-	{
-	    int flag1 = ++max_id_, flag2 = ++max_id_;
-	    set_flag_for_constraint (flag1);
-	    bool exist = false;
-	    for (reverseNextMap::iterator it = reverse_next_map_.begin (); it != reverse_next_map_.end (); it ++)
-	    {
-	        vector<int>& v = it->second;
-	        if (v.size () <= 1)
-	            continue;
-	        for (int i = 0; i < v.size () - 1; i ++)
-	        {
-	            exist = true;
-	            vect tmp;
-	            tmp.push_back (v[i]);
-	            tmp.push_back (-v[i+1]);
-	            tmp.push_back (-flag1);
-	            cls_.push_back (tmp);
-	            tmp.clear ();
-	            tmp.push_back (-v[i]);
-	            tmp.push_back (v[i+1]);
-	            tmp.push_back (-flag1);
-	            cls_.push_back (tmp);
-	        }
-	    }
-	    if (!exist)
-	    {
-	        //at last add one clause for flag1 so that the sat solver will not treat flag1 as one literal
-	        vect tmp;
-	        tmp.push_back (++max_id_);
-	        tmp.push_back (-flag1);
-	        cls_.push_back (tmp);
-	    }
-	    //add initial state
-	    for (int i = 0; i < init_.size (); i ++)
-	    {
-	        vect tmp;
-	        tmp.push_back (init_[i]);
-	        tmp.push_back (-flag2);
-	        cls_.push_back (tmp);
-	    }
-	    vect tmp;
-	    tmp.push_back (flag1);
-	    tmp.push_back (flag2);
-	    cls_.push_back (tmp);
-	}
 	
 	void Model::collect_necessary_gates (const aiger* aig, const aiger_symbol* as, const int as_size, 
-	                                        hash_set<unsigned>& exist_gates, hash_set<unsigned>& gates, bool next)
+	                                        hash_set<unsigned>& exist_gates, vector<unsigned>& gates, bool next)
 	{
 		for (int i = 0; i < as_size; i ++)
 		{
@@ -249,14 +204,14 @@ namespace car{
 		return NULL;
 	}
 	
-	void Model::recursively_add (const aiger_and* aa, const aiger* aig, hash_set<unsigned>& exist_gates, hash_set<unsigned>& gates)
+	void Model::recursively_add (const aiger_and* aa, const aiger* aig, hash_set<unsigned>& exist_gates, vector<unsigned>& gates)
 	{
 		if (aa == NULL)
 			return;
 		if (exist_gates.find (aa->lhs) != exist_gates.end ())
 			return;
 		
-		gates.insert (aa->lhs);
+		gates[aa->lhs/2] = aa->lhs;
 		exist_gates.insert (aa->lhs);
 		aiger_and* aa0 = necessary_gate (aa->rhs0, aig);
 		recursively_add (aa0, aig, exist_gates, gates);
@@ -382,18 +337,38 @@ namespace car{
 		uc = tmp;
 	}
 	
-	void Model::update_constraint (Cube& cu)
-	{
-	    vect v;
-	    for (int i = 0; i < cu.size (); i ++)
-	        v.push_back (-cu[i]);
-	    v.push_back (-flag_for_constraint_);
-	    //update cu for later use
-	    cu.push_back (flag_for_constraint_);
-	    cls_.insert (cls_.begin (), v);
-	    outputs_start_ += 1;
-	    latches_start_ += 1;
+	//propagate the model based on \@ assump, and the results are stored in \@ res
+	bool Model::propagate (const std::vector<int>& assump, std::vector<int>& res) {
+	    res.resize (max_id_ + 1, 0);
+	    for (int i = 0; i < assump.size (); i ++) {
+	        res[abs(assump[i])] = assump[i]; 
+	    }
+	    
+	    for (int i = 0; i < cls_.size (); i ++) {
+	        Clause& cl = cls_[i];
+	        vector<int> tmp;
+	        int j = 0;
+	        for (; j < cl.size (); j ++) {
+	            if (is_true (cl[j]) || res[abs (cl[j])] == cl[j]) {
+	                tmp.clear ();
+	                break;
+	            }
+	            if (is_false (cl[j]) || res[abs (cl[j])] == -cl[j]) 
+	                continue;
+	            tmp.push_back (cl[j]);
+	        }
+	        if (j >= cl.size ()) {
+	            if (tmp.size () == 1) {
+	                res[abs(tmp[0])] = tmp[0]; 
+	            }
+	            //propagate to false
+	            else if (tmp.size () == 0) 
+	                return false;
+	        }
+	    }
+	    return true;
 	}
+	
 	
 	void Model::print ()
 	{

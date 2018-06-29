@@ -61,7 +61,6 @@ public:
 	void shrink_to_previous_vars (Cube& cu, bool& constraint);
 	void shrink_to_latch_vars (Cube& cu, bool& constraint);
 	
-	void update_constraint (Cube& cu);
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}
 	
@@ -72,15 +71,12 @@ public:
 private:
 	//members
 	bool verbose_;
-	
-	
+		
 	int num_inputs_;
 	int num_latches_;
 	int num_ands_;
 	int num_constraints_;
 	int num_outputs_;
-	
-	int flag_for_constraint_;
 	
 	int max_id_;  //maximum used id in the model
 	
@@ -111,10 +107,6 @@ private:
 	
 	
 	//functions
-	inline void set_flag_for_constraint (int id)
-	{
-	    flag_for_constraint_ = id;
-	}
 	inline bool is_true (const unsigned id)
 	{
 		return (id == 1) || (trues_.find (id) != trues_.end ());
@@ -168,16 +160,16 @@ private:
 	void collect_trues (const aiger* aig);
 	void create_next_map (const aiger* aig);
 	void create_clauses (const aiger* aig);
-	void collect_necessary_gates (const aiger* aig, const aiger_symbol* as, const int as_size, hash_set<unsigned>& exist_gates, hash_set<unsigned>& gates, bool next = false);
+	void collect_necessary_gates (const aiger* aig, const aiger_symbol* as, const int as_size, hash_set<unsigned>& exist_gates, std::vector<unsigned>& gates, bool next = false);
 	aiger_and* necessary_gate (const unsigned id, const aiger* aig);
-	void recursively_add (const aiger_and* aa, const aiger* aig, hash_set<unsigned>& exist_gates, hash_set<unsigned>& gates);
+	void recursively_add (const aiger_and* aa, const aiger* aig, hash_set<unsigned>& exist_gates, std::vector<unsigned>& gates);
 	void add_clauses_from_gate (const aiger_and* aa);
 	void set_init (const aiger* aig);
 	void set_constraints (const aiger* aig);
 	void set_outputs (const aiger* aig);
 	void insert_to_reverse_next_map (const int index, const int val);
-	void create_constraints_for_latches ();
-	
+public:
+	bool propagate (const std::vector<int>& assump, std::vector<int>& res);
 	
 };
 

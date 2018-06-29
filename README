@@ -1,3 +1,10 @@
+/***************************************************/
+* SimpleCAR is being actively updated.             *
+* To download the sources for CAV 2018 evaluation, *
+* please see the release.                          *
+/***************************************************/
+
+
 1 To install simplecar: make under the root directory of source codes
 
 2 To run simplecar: ./simplecar -h for details

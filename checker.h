@@ -34,7 +34,6 @@
 #include "statistics.h"
 #include <fstream>
 
-#define MAX_COUNT 5
 #define MAX_SOLVER_CALL 500
 
 namespace car 
@@ -42,11 +41,18 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool greedy, double ratio = 1.0, bool forward = true, bool inv_next = false, bool propage = false, bool evidence = false, bool verbose = false, bool intersect = false, bool minimal_uc = false, bool detect_dead_state = false, bool relative = false, bool relative_full = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool verbose = false, bool minimal_uc = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
 		void print_evidence (std::ofstream&);
+		inline int frame_size () {return frame_.size ();}
+		inline void print_frames_sizes () {
+		    for (int i = 0; i < F_.size (); i ++) {
+		        std::cout << F_[i].size () << " ";
+		    }
+		    std::cout << std::endl;
+		}
 	private:
 		//flags 
 		bool forward_;
@@ -54,15 +60,8 @@ namespace car
 		bool minimal_uc_;
 		bool evidence_;
 		bool verbose_;
-		bool detect_dead_state_;
-		bool relative_;
-		bool relative_full_;
-		bool propagate_;
-		bool intersect_;
-		bool inv_next_;
 		//members
 		Statistics *stats_;
-		double reduce_ratio_;
 		
 		std::ofstream* dot_; //for dot file
 		int solver_call_counter_; //counter for solver_ calls
@@ -72,20 +71,15 @@ namespace car
 		State* init_;  // the start state for forward CAR
 		State* last_;  // the start state for backward CAR
 		int bad_;
-		std::vector<Cube> constraints_;  //to store the invariant found under detect_dead_state_
+
 		Model* model_;
 		MainSolver *solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
 		Fsequence F_;
-		typedef std::vector<int> FrameCounter;
-		typedef std::vector<FrameCounter> FrameCounters;
-		FrameCounters FC_;  //corresponds to F_, for every cube in every frame in F_, i.e. F[i][j], there is FC_[i][j] corresponds to the 
-							//number of attempts to reduce
 		Bsequence B_;
 		Frame frame_;   //to store the frame willing to be added in F_ in one step
-		Frame frame2_;  //to store the frame willing to be added in F_ in two step (for relative only)
-		FrameCounter fc_; //corresponds to frame_, for every cube frame_[i], fc_[i] corresponds to the number of attempts to reduce
+		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
 		bool immediate_satisfiable ();
@@ -93,6 +87,7 @@ namespace car
 		bool immediate_satisfiable (const Cube&);
 		void initialize_sequences ();
 		bool try_satisfy (const int frame_level);
+		int do_search (const int frame_level);
 		bool try_satisfy_by (int frame_level, const State* s);
 		bool invariant_found (int frame_level);
 		bool invariant_found_at (const int frame_level);
@@ -106,12 +101,9 @@ namespace car
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
-		void push_to_frame (Cube& cu, const int frame_level, const State* s = NULL);
+		void push_to_frame (Cube& cu, const int frame_level);
 		bool tried_before (const State* s, const int frame_level);
-		bool state_imply (const State* st, const Cube& cu);
-		void add_reduced_uc (Cube& cu, int frame_level);
 		
-		Cube relative_cube (const State* s, const int frame_level);
 		
 		State* enumerate_start_state ();
 		State* get_new_start_state ();
@@ -121,35 +113,11 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
-		void set_initial_frame ();
-		void update_constraint (Cube& cu, const State* s = NULL);
-		void remove_dead_states ();
-		
-		bool propagate ();
-		bool propagate (int pos);
-		std::vector<int> propagate_start_;
-		
-		Cube constraint_intersect_;  //for constraint_
-		std::vector<Cube> frames_intersect_; //for F_
-		Cube cube_intersection (const State *s, Cube& cu, const int frame_level);
-		
-		inline Cube& intersect_of (const int frame_level){
-			Cube cu;
-			while (frames_intersect_.size () <= frame_level)
-				frames_intersect_.push_back (cu);
-			return frames_intersect_[frame_level];
-		}
-		
-		//heuristics search API
-		bool greedy_;
-		int do_search (const int frame_level);
-		void initial_greedy_state_sequence (std::vector<std::vector<State*> > &state_seq);
-		State* pick_up_one_state (std::vector<State*>& states);
-		void push_back_to (std::vector<std::vector<State*> >& states_seq, const int work, State * new_state);
+				
 		
 		//inline functions
 		inline void create_inv_solver (){
-			inv_solver_ = new InvSolver (model_, inv_next_, verbose_);
+			inv_solver_ = new InvSolver (model_, verbose_);
 		}
 		inline void delete_inv_solver (){
 			delete inv_solver_;
@@ -206,7 +174,7 @@ namespace car
 	    inline void reconstruct_solver () {
 	        delete solver_;
 	        MainSolver::clear_frame_flags ();
-	        solver_ = new MainSolver (model_, stats_, reduce_ratio_, verbose_);
+	        solver_ = new MainSolver (model_, stats_, verbose_);
 	        for (int i = 0; i < F_.size (); i ++) {
 	            solver_->add_new_frame (F_[i], i, forward_);
 	        }
@@ -233,20 +201,9 @@ namespace car
 	    
 	    inline void clear_frame (){
 	        frame_.clear ();
-	        frame_ = frame2_;
 	        for (int i = 0; i < frame_.size (); i ++)
 	        	start_solver_->add_clause_with_flag (frame_[i]);
-	        frame2_.clear ();
-	        fc_.clear ();
 	    }
-	    
-	    inline bool dead_state (const State* s){
-	        stats_->count_detect_dead_state_time_start ();
-	        bool res = solve_with (const_cast<State*>(s)->s (), -2);
-	        stats_->count_detect_dead_state_time_end ();
-	        return !res;
-	    }
-	    
 	    
 	    
 	    inline void print_frame (const Frame& f){
