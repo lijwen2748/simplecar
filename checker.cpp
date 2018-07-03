@@ -559,6 +559,7 @@ namespace car
 		}
 		
 		push_to_frame (cu, frame_level);
+		
 		/*
 		//look ahead one step
 		if (!s->computed_next ()) {

@@ -66,7 +66,8 @@ namespace car
 	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward)
 	{
 		assumption_.clear ();
-		
+		if (frame_level > -1)
+			assumption_push (flag_of (frame_level));		
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
@@ -75,9 +76,7 @@ namespace car
 			else
 				assumption_push (id);
 		}
-		
-		if (frame_level > -1)
-			assumption_push (flag_of (frame_level));		
+			
 	}
 	
 	Assignment MainSolver::get_state (const bool forward, const bool partial)
