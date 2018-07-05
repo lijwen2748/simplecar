@@ -96,6 +96,8 @@ namespace car
 			if (conflict[i] != bad)
 				res.push_back (conflict[i]);
 		}
+		
+		std::sort (res.begin (), res.end (), car::comp);
 		return res;
 	}
 	

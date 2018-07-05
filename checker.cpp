@@ -268,6 +268,7 @@ namespace car
 		minimal_update_level_ = F_.size ()-1;
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
+		frame_element_counter_.resize (2*(model_->num_inputs () + model_->num_latches () + 1), 0);
 	}
 	Checker::~Checker ()
 	{
@@ -366,6 +367,7 @@ namespace car
 	        frame.push_back (cu);
 		}
 		F_.push_back (frame);
+		update_frame_element_counter (frame[0], true);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
 	
@@ -617,10 +619,12 @@ namespace car
 				tmp_frame.push_back (frame[i]);	
 			else {
 			    stats_->count_clause_contain_success ();
+			    update_frame_element_counter (frame[i], false);
 			}
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
+		update_frame_element_counter (cu, true);
 		frame = tmp_frame;
 		
 		if (frame_level < int (F_.size ()))
@@ -661,6 +665,21 @@ namespace car
 	    return false;
 	}
 	
+	//update frame_element_counter_, if flag is true do add, else do minus
+	void Checker::update_frame_element_counter (Cube& cu, bool flag) {
+	    for (int i = 0; i < cu.size (); i ++) {
+	        int id = cu[i] > 0 ? 2*cu[i] : 2* (-cu[i]) +1;
+	        if (flag) {
+	            frame_element_counter_[id] += 1;
+	        }
+	        else {
+	            assert (frame_element_counter_[id] > 0);
+	            frame_element_counter_[id] -= 1;
+	        }
+	    }
+	}
+	
+		
 	void Checker::print_evidence (ofstream& out) {
 		if (forward_)
 			init_->print_evidence (forward_, out);

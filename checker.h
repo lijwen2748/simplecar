@@ -33,11 +33,24 @@
 #include "utility.h"
 #include "statistics.h"
 #include <fstream>
+#include <algorithm>
 
 #define MAX_SOLVER_CALL 500
 
 namespace car 
 {
+    class Comparator {
+    public:
+        Comparator (std::vector<int>& counter): counter_ (counter) {}
+        
+        bool operator () (int i, int j) {
+            int id1 = i > 0 ? 2*i : 2*(-i)+1, id2 = j > 0 ? 2*j : 2*(-j)+1;
+            return counter_[id1] < counter_[id2];
+        }
+    private: 
+        std::vector<int> counter_;
+    };
+    
 	class Checker 
 	{
 	public:
@@ -79,6 +92,16 @@ namespace car
 		Fsequence F_;
 		Bsequence B_;
 		Frame frame_;   //to store the frame willing to be added in F_ in one step
+		
+		std::vector<int> frame_element_counter_;  //It is supposed to have the length of 2*(num_inputs+num_latches+1)
+		                                          //frame_element_counter_[2*i] stores the number of appearance for latch i in F_, 
+		                                          //and frame_element_counter_[2*i+1] stores the number of appearance for -i in F_;
+		void update_frame_element_counter (Cube& cu, bool flag);
+	   
+	    inline void sort_based_on_frame_element_counter (Assignment& st) {
+	        std::sort (st.begin(), st.end (), Comparator (frame_element_counter_));
+	    }
+	    
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
@@ -183,8 +206,10 @@ namespace car
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
+	        Assignment st2 = st;
+	        sort_based_on_frame_element_counter (st2);
 	        stats_->count_main_solver_SAT_time_start ();
-	        bool res = solver_->solve_with_assumption (st, p);
+	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
 	        return res;
 	    }
@@ -192,7 +217,9 @@ namespace car
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int frame_level, bool forward){
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
-	        solver_->set_assumption (st, frame_level, forward);
+	        Assignment st2 = st;
+	        sort_based_on_frame_element_counter (st2);
+	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();
 		    stats_->count_main_solver_SAT_time_end ();
