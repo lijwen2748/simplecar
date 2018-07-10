@@ -41,14 +41,18 @@ namespace car
 {
     class Comparator {
     public:
-        Comparator (std::vector<int>& counter): counter_ (counter) {}
+        //Comparator (std::vector<int>& counter): counter_ (counter) {}
+        Comparator (Model* model): model_ (model) {}
         
         bool operator () (int i, int j) {
-            int id1 = i > 0 ? 2*i : 2*(-i)+1, id2 = j > 0 ? 2*j : 2*(-j)+1;
-            return counter_[id1] < counter_[id2];
+            //int id1 = i > 0 ? 2*i : 2*(-i)+1, id2 = j > 0 ? 2*j : 2*(-j)+1;
+            //return counter_[id1] < counter_[id2];
+            int id1 = model_->prime (i), id2 = model_->prime (j);
+            return abs(id1) < abs (id2);
         }
     private: 
-        std::vector<int> counter_;
+        //std::vector<int> counter_;
+        Model* model_;
     };
     
 	class Checker 
@@ -99,7 +103,14 @@ namespace car
 		void update_frame_element_counter (Cube& cu, bool flag);
 	   
 	    inline void sort_based_on_frame_element_counter (Assignment& st) {
-	        std::sort (st.begin(), st.end (), Comparator (frame_element_counter_));
+	        //std::sort (st.begin(), st.end (), Comparator (frame_element_counter_));
+	        /*
+	        Assignment tmp;
+	        for (int i = st.size()-1; i >= 0; i --)
+	            tmp.push_back (st[i]);
+	        st = tmp;
+	        */
+	        std::sort (st.begin(), st.end (), Comparator (model_));
 	    }
 	    
 		
@@ -207,7 +218,7 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        sort_based_on_frame_element_counter (st2);
+	        //sort_based_on_frame_element_counter (st2);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
@@ -218,7 +229,7 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        sort_based_on_frame_element_counter (st2);
+	        //sort_based_on_frame_element_counter (st2);
 	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();
