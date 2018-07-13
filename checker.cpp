@@ -202,7 +202,7 @@ namespace car
 		else
 		{
 		    
-		    while (solve_with (const_cast<State*>(s)->s (), frame_level))
+		    while (solve_with (const_cast<State*>(s)->s_with_conflict_guided (), frame_level))
 		    {
 			    State* new_state = get_new_state (s);
 			    assert (new_state != NULL);
@@ -559,6 +559,9 @@ namespace car
 			report_safe ();
 			return;
 		}
+		
+		//set conflict \@cu to the state for further use
+		const_cast<State*> (s) -> set_conflict (cu);
 		
 		push_to_frame (cu, frame_level);
 		

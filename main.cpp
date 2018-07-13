@@ -105,7 +105,7 @@ void check_aiger (int argc, char** argv)
    bool verbose = false;
    bool evidence = false;
    bool minimal_uc = false;
-   bool gv = true; //to print dot format for graphviz 
+   bool gv = false; //to print dot format for graphviz 
    
    
    string input;

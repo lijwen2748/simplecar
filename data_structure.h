@@ -87,6 +87,14 @@
  		inline std::vector<int>& nexts () {return nexts_;}
  		inline bool computed_next () const {return computed_next_;}
  		
+ 		inline void set_conflict (Cube& cu) {conflict_ = cu;}
+ 		inline Assignment s_with_conflict_guided () {
+ 		    Assignment res = conflict_;
+ 		    for (int i = 0; i < s_.size (); i ++)
+ 		            res.push_back (s_[i]);
+ 		    return res;
+ 		}
+ 		
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
@@ -94,6 +102,8 @@
  		State* pre_;
  		std::vector<int> inputs_;
  		std::vector<int> last_inputs_; // for backward CAR only!
+ 		
+ 		std::vector<int> conflict_;
  		
  		bool init_;  //whether it is an initial state
  		bool final_; //whether it is an final state
