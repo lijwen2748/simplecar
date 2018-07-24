@@ -70,7 +70,7 @@ namespace car
 		    }
 		    std::cout << std::endl;
 		}
-	private:
+	protected:
 		//flags 
 		bool forward_;
 		bool partial_state_;

@@ -87,6 +87,9 @@
  		inline std::vector<int>& nexts () {return nexts_;}
  		inline bool computed_next () const {return computed_next_;}
  		
+ 		inline int work_level () const {return work_level_;}
+ 		inline void set_work_level (int id) {work_level_ = id;}
+ 		
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
@@ -102,6 +105,8 @@
  		
  		bool computed_next_;  //flag to label whether the next part of the state has been computed
  		std::vector<int> nexts_; //the next part which can be decided by the state without input
+ 		
+ 		int work_level_;
  		
  		
  		int detect_dead_start_; //to store the start position to check whether it is a dead state

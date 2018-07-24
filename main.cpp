@@ -16,6 +16,7 @@
 */
 
 #include "checker.h"
+#include "bfschecker.h"
 #include "statistics.h"
 #include "data_structure.h"
 #include "model.h"
