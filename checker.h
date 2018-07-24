@@ -113,6 +113,19 @@ namespace car
 	        std::sort (st.begin(), st.end (), Comparator (model_));
 	    }
 	    
+	    inline void add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
+	    	Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    	if (frame.size () == 0)  
+	    		return;
+	    	Cube& cu = frame[frame.size()-1];
+	    	std::vector<int> tmp;
+	    	for (int i = 0; i < cu.size() ; i ++) {
+	    		if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
+	    			tmp.push_back (cu[i]);
+	    	}
+	    	st.insert (st.begin (), tmp.begin (), tmp.end ());
+	    }
+	    
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
@@ -230,6 +243,7 @@ namespace car
 	            reconstruct_solver ();
 	        Assignment st2 = st;
 	        //sort_based_on_frame_element_counter (st2);
+	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
 	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();
