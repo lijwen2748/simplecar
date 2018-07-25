@@ -367,6 +367,8 @@ namespace car
 	        frame.push_back (cu);
 		}
 		F_.push_back (frame);
+		Cube cu;
+		cubes_.push_back (cu);
 		update_frame_element_counter (frame[0], true);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
@@ -535,6 +537,7 @@ namespace car
 	void Checker::extend_F_sequence ()
 	{
 		F_.push_back (frame_);
+		cubes_.push_back (cube_);
 		solver_->add_new_frame (frame_, F_.size()-1, forward_);
 	}
 	
@@ -559,6 +562,11 @@ namespace car
 			report_safe ();
 			return;
 		}
+		
+		//update cubes_ or cube_
+		Cube& cube = (frame_level < int (F_.size ())) ? cubes_[frame_level] : cube_;
+		if (!imply (cube, cu))
+		    cube = const_cast<State*> (s)->s();
 		
 		push_to_frame (cu, frame_level);
 		
@@ -607,6 +615,7 @@ namespace car
 		
 		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
 		
+				
 		//To add \@ cu to \@ frame, there must be
 		//1. \@ cu does not imply any clause in \@ frame
 		//2. if a clause in \@ frame implies \@ cu, replace it by \@cu
@@ -677,6 +686,34 @@ namespace car
 	            frame_element_counter_[id] -= 1;
 	        }
 	    }
+	}
+	
+	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
+	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
+	    /*
+	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    if (frame.size () == 0)  
+	    	return;
+	    Cube& cu = frame[frame.size()-1];
+	    std::vector<int> tmp;
+	    for (int i = 0; i < cu.size() ; i ++) {
+	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
+	    		tmp.push_back (cu[i]);
+	    }
+	    st.insert (st.begin (), tmp.begin (), tmp.end ());
+	    */
+	    Cube& cu = (frame_level+1 < F_.size ()) ? cubes_[frame_level+1] : cube_;
+	    if (cu.empty ()) {  
+	        cu = st;
+	    	return;
+	    }
+	    std::vector<int> tmp;
+	    for (int i = 0; i < cu.size() ; i ++) {
+	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
+	    		tmp.push_back (cu[i]);
+	    }
+	    cu = tmp;
+	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	}
 	
 		
