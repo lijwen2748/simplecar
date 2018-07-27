@@ -702,18 +702,34 @@ namespace car
 	    }
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    */
+	    
 	    Cube& cu = (frame_level+1 < F_.size ()) ? cubes_[frame_level+1] : cube_;
 	    if (cu.empty ()) {  
 	        cu = st;
 	    	return;
 	    }
 	    std::vector<int> tmp;
+	    
+	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    if (frame.size () != 0) {
+	        Cube& cube = frame[frame.size()-1];
+	        for (int i = 0; i < cube.size() ; i ++) {
+	    	    if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i])
+	    		    tmp.push_back (cube[i]);
+	        }
+	    }
+	    
+	    int sz = tmp.size ();
 	    for (int i = 0; i < cu.size() ; i ++) {
 	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
 	    		tmp.push_back (cu[i]);
 	    }
-	    cu = tmp;
+	    //cu = tmp;
+	    cu.clear ();
+	    for (int i = sz; i < tmp.size (); i ++)
+	        cu.push_back (tmp[i]);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
+	    
 	}
 	
 		

@@ -224,6 +224,7 @@ namespace car
 	            reconstruct_solver ();
 	        Assignment st2 = st;
 	        //sort_based_on_frame_element_counter (st2);
+	        add_intersection_last_uc_in_frame_level_plus_one (st2, 0);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
