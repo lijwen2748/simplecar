@@ -570,43 +570,6 @@ namespace car
 		
 		push_to_frame (cu, frame_level);
 		
-		/*
-		//look ahead one step
-		if (!s->computed_next ()) {
-		    Assignment assign;
-		    model_->propagate (const_cast<State*>(s)->s (), assign);
-		    Cube next;
-		    //get the partial next state of s
-		    for (int i = model_->num_inputs ()+1; i <= model_->num_inputs () + model_->num_latches (); i ++) {
-		        int p = model_->prime (i);
-		        assert (p != 0);
-		        assert (assign.size () > abs (p));
-		    	
-		        int val = assign[abs(p)-1];
-		        if (val == 0) continue;
-		        if (p == val)
-		    	    next.push_back (i);
-		        else
-		    	    next.push_back (-i);
-		    }
-		    const_cast<State*> (s)->set_nexts (next);
-		}
-		Cube& nexts = const_cast<State*>(s)->nexts ();
-		constraint = false;
-		if (!solve_with (nexts, frame_level-1)) {
-		    cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-		    
-		    //pay attention to the size of cu!
-		    if (cu.empty ())
-		    {
-			    report_safe ();
-			    return;
-		    }
-		
-		    push_to_frame (cu, frame_level);
-		}
-		*/
-		
 	}
 
 	
@@ -688,21 +651,71 @@ namespace car
 	    }
 	}
 	
+	void Checker::reorder (std::vector<int>& v, const int frame_level) {
+	    std::vector<int> res;
+	    for (int i = 0; i < ordered_[frame_level].size(); i ++){
+	        //if ordered_[i] is found at v[i], then v[i] will be set to 0 for further purpose
+	        if (binary_search (ordered_[frame_level][i], v, 0, v.size()-1))
+	            res.push_back (ordered_[frame_level][i]);
+	    }
+	    for (int i = 0; i < v.size (); i ++) {
+	        if (v[i] != 0)
+	            res.push_back (v[i]);
+	    }
+	    v = res;
+	}
+	
+	void Checker::update_ordered (std::vector<int> v, const int frame_level) {
+	    while (ordered_.size () <= frame_level) { 
+	        Cube c;
+	        ordered_.push_back (c);
+	    }
+	    reorder (v, frame_level);
+	    ordered_[frame_level] = v;
+	}
+	
+	bool Checker::binary_search (const int id, std::vector<int>& v, int l, int r) {
+	    //Assumption: v is sorted
+	    while (l <= r) {
+	        int mid = l + (r-l)/2;
+	        if (abs (v[mid]) == abs(id))
+	        {
+	            if (v[mid] == id) {
+	                v[mid] = 0;
+	                return true;
+	            }
+	            return false;
+	        }
+	        if (abs (v[mid]) < abs (id)) 
+	            l = mid + 1;
+	        else r = mid - 1;
+	    }
+	    return false;
+	    
+	}
+	
 	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
 	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
-	    /*
+	    
 	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
 	    if (frame.size () == 0)  
 	    	return;
 	    Cube& cu = frame[frame.size()-1];
+	    
+	    //update_ordered (cu, frame_level);
+	    
 	    std::vector<int> tmp;
 	    for (int i = 0; i < cu.size() ; i ++) {
 	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
 	    		tmp.push_back (cu[i]);
 	    }
-	    st.insert (st.begin (), tmp.begin (), tmp.end ());
-	    */
 	    
+	    //reorder (tmp, frame_level);
+	    
+	    st.insert (st.begin (), tmp.begin (), tmp.end ());
+	    
+	    
+	    /*
 	    Cube& cu = (frame_level+1 < F_.size ()) ? cubes_[frame_level+1] : cube_;
 	    if (cu.empty ()) {  
 	        cu = st;
@@ -729,7 +742,7 @@ namespace car
 	    for (int i = sz; i < tmp.size (); i ++)
 	        cu.push_back (tmp[i]);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
-	    
+	    */
 	}
 	
 		

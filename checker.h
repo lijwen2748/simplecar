@@ -114,6 +114,10 @@ namespace car
 	    }
 	    
 	    void add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level); 
+	    void reorder (std::vector<int>& v, const int frame_level);
+	    void update_ordered (std::vector<int> v, const int frame_level);
+	    bool binary_search (const int id, std::vector<int>& v, int l, int r);
+	    std::vector<Cube> ordered_;
 	    
 	    std::vector<Cube> cubes_; //corresponds to F_, i.e. cubes_[i] corresponds to F_[i]
 	    Cube cube_;  //corresponds to frame_
