@@ -54,14 +54,12 @@ namespace car
 	void MainSolver::set_assumption (const Assignment& st, const int id)
 	{
 		assumption_.clear ();
-		//for (Assignment::const_iterator it = st.begin (); it != st.end (); it++)
-		for (auto it = st.rbegin (); it != st.rend (); it ++)
+		assumption_push (id);
+		
+		for (Assignment::const_iterator it = st.begin (); it != st.end (); it++)
 		{
 			assumption_push (*it);
-		}
-		
-		assumption_push (id);
-				
+		}		
 	}
 	
 	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward)
@@ -69,8 +67,7 @@ namespace car
 		assumption_.clear ();
 		if (frame_level > -1)
 			assumption_push (flag_of (frame_level));		
-		//for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
-		for (auto it = a.rbegin (); it != a.rend (); it ++)
+		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
 			if (forward)

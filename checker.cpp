@@ -694,9 +694,69 @@ namespace car
 	    
 	}
 	
+	void Checker::get_previous (const Assignment& st, const int frame_level, std::vector<int>& res) {
+	    if (frame_level == -1) return;
+	    Frame& frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
+	    
+	    for (int i = frame.size ()-1; i >= 0; --i) {
+	        Cube& cu = frame[i];
+	        int j = 0;
+	        for (; j < cu.size() ; ++ j) {
+	    	    if (st[abs(cu[j])-model_->num_inputs ()-1] != cu[j]) {
+	    		    break;
+	    	    }
+	        }
+	        if (j >= cu.size ()) { 
+	            res = cu;
+	            break;
+	        }
+	    }
+	}
+	
+	//collect priority ids and store in \@ res
+	void Checker::get_priority (const Assignment& st, const int frame_level, std::vector<int>& res) {
+	/*
+	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    if (frame.size () == 0)  
+	    	return;
+	    	
+	    for (int i = 0; i < frame.size (); ++i) {
+	        Cube& cu = frame[i];
+	        
+	        if (res.size () >= cu.size ())
+	            continue;
+	        std::vector<int> tmp;
+	        for (int i = 0; i < cu.size() ; ++ i) {
+	    	    if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
+	    		    tmp.push_back (cu[i]);
+	    	    }
+	        }
+	        if (res.size () < tmp.size ())
+	            res = tmp;
+	    }
+	    */
+	    
+	    get_previous (st, frame_level, res);
+	    
+	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    if (frame.size () == 0)  
+	    	return;
+	    	
+	    Cube& cu = frame[frame.size()-1];
+	        
+	    std::vector<int> tmp;
+	    tmp.reserve (cu.size());
+	    for (int i = 0; i < cu.size() ; ++ i) {
+	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
+	    		tmp.push_back (cu[i]);
+	    	}
+	    }
+	    res.insert (res.begin (), tmp.begin (), tmp.end ());
+	}
+	
 	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
 	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
-	    
+	    /*
 	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
 	    if (frame.size () == 0)  
 	    	return;
@@ -704,14 +764,27 @@ namespace car
 	    
 	    //update_ordered (cu, frame_level);
 	    
+	    Assignment st2 = st;
 	    std::vector<int> tmp;
-	    for (int i = 0; i < cu.size() ; i ++) {
-	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
+	    for (int i = 0; i < cu.size() ; ++ i) {
+	    	if (st2[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
 	    		tmp.push_back (cu[i]);
+	    		st2[abs(cu[i])-model_->num_inputs ()-1] = 0;
+	    	}
 	    }
 	    
+	    int res = tmp.size ();
 	    //reorder (tmp, frame_level);
-	    
+	    for (int i = 0; i < st2.size (); ++ i) {
+	    //for (int i = st2.size()-1; i >= 0; -- i) {
+	        if (st2[i] != 0) //not already in tmp
+	            //tmp.insert (tmp.begin (), st2[i]);
+	            tmp.push_back (st2[i]);
+	    }
+	    st = tmp;
+	    */
+	    std::vector<int> tmp;
+	    get_priority (st, frame_level, tmp);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    
 	    

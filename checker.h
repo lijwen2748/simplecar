@@ -113,6 +113,8 @@ namespace car
 	        std::sort (st.begin(), st.end (), Comparator (model_));
 	    }
 	    
+	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
+	    void get_priority (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level); 
 	    void reorder (std::vector<int>& v, const int frame_level);
 	    void update_ordered (std::vector<int> v, const int frame_level);
@@ -228,7 +230,7 @@ namespace car
 	            reconstruct_solver ();
 	        Assignment st2 = st;
 	        //sort_based_on_frame_element_counter (st2);
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, 0);
+	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
