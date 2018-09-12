@@ -268,7 +268,6 @@ namespace car
 		minimal_update_level_ = F_.size ()-1;
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
-		frame_element_counter_.resize (2*(model_->num_inputs () + model_->num_latches () + 1), 0);
 	}
 	Checker::~Checker ()
 	{
@@ -369,7 +368,6 @@ namespace car
 		F_.push_back (frame);
 		Cube cu;
 		cubes_.push_back (cu);
-		update_frame_element_counter (frame[0], true);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
 	
@@ -563,10 +561,6 @@ namespace car
 			return;
 		}
 		
-		//update cubes_ or cube_
-		Cube& cube = (frame_level < int (F_.size ())) ? cubes_[frame_level] : cube_;
-		if (!imply (cube, cu))
-		    cube = const_cast<State*> (s)->s();
 		
 		push_to_frame (cu, frame_level);
 		
@@ -591,12 +585,10 @@ namespace car
 				tmp_frame.push_back (frame[i]);	
 			else {
 			    stats_->count_clause_contain_success ();
-			    update_frame_element_counter (frame[i], false);
 			}
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
-		update_frame_element_counter (cu, true);
 		frame = tmp_frame;
 		
 		if (frame_level < int (F_.size ()))
@@ -637,62 +629,6 @@ namespace car
 	    return false;
 	}
 	
-	//update frame_element_counter_, if flag is true do add, else do minus
-	void Checker::update_frame_element_counter (Cube& cu, bool flag) {
-	    for (int i = 0; i < cu.size (); i ++) {
-	        int id = cu[i] > 0 ? 2*cu[i] : 2* (-cu[i]) +1;
-	        if (flag) {
-	            frame_element_counter_[id] += 1;
-	        }
-	        else {
-	            assert (frame_element_counter_[id] > 0);
-	            frame_element_counter_[id] -= 1;
-	        }
-	    }
-	}
-	
-	void Checker::reorder (std::vector<int>& v, const int frame_level) {
-	    std::vector<int> res;
-	    for (int i = 0; i < ordered_[frame_level].size(); i ++){
-	        //if ordered_[i] is found at v[i], then v[i] will be set to 0 for further purpose
-	        if (binary_search (ordered_[frame_level][i], v, 0, v.size()-1))
-	            res.push_back (ordered_[frame_level][i]);
-	    }
-	    for (int i = 0; i < v.size (); i ++) {
-	        if (v[i] != 0)
-	            res.push_back (v[i]);
-	    }
-	    v = res;
-	}
-	
-	void Checker::update_ordered (std::vector<int> v, const int frame_level) {
-	    while (ordered_.size () <= frame_level) { 
-	        Cube c;
-	        ordered_.push_back (c);
-	    }
-	    reorder (v, frame_level);
-	    ordered_[frame_level] = v;
-	}
-	
-	bool Checker::binary_search (const int id, std::vector<int>& v, int l, int r) {
-	    //Assumption: v is sorted
-	    while (l <= r) {
-	        int mid = l + (r-l)/2;
-	        if (abs (v[mid]) == abs(id))
-	        {
-	            if (v[mid] == id) {
-	                v[mid] = 0;
-	                return true;
-	            }
-	            return false;
-	        }
-	        if (abs (v[mid]) < abs (id)) 
-	            l = mid + 1;
-	        else r = mid - 1;
-	    }
-	    return false;
-	    
-	}
 	
 	void Checker::get_previous (const Assignment& st, const int frame_level, std::vector<int>& res) {
 	    if (frame_level == -1) return;
@@ -715,28 +651,8 @@ namespace car
 	
 	//collect priority ids and store in \@ res
 	void Checker::get_priority (const Assignment& st, const int frame_level, std::vector<int>& res) {
-	/*
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
-	    if (frame.size () == 0)  
-	    	return;
-	    	
-	    for (int i = 0; i < frame.size (); ++i) {
-	        Cube& cu = frame[i];
-	        
-	        if (res.size () >= cu.size ())
-	            continue;
-	        std::vector<int> tmp;
-	        for (int i = 0; i < cu.size() ; ++ i) {
-	    	    if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
-	    		    tmp.push_back (cu[i]);
-	    	    }
-	        }
-	        if (res.size () < tmp.size ())
-	            res = tmp;
-	    }
-	    */
 	    
-	    get_previous (st, frame_level, res);
+	    //get_previous (st, frame_level, res);
 	    
 	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
 	    if (frame.size () == 0)  
@@ -751,71 +667,43 @@ namespace car
 	    		tmp.push_back (cu[i]);
 	    	}
 	    }
-	    res.insert (res.begin (), tmp.begin (), tmp.end ());
+	    res = tmp;
+	    //res.insert (res.begin (), tmp.begin (), tmp.end ());
 	}
 	
 	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
 	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
-	    /*
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
-	    if (frame.size () == 0)  
-	    	return;
-	    Cube& cu = frame[frame.size()-1];
-	    
-	    //update_ordered (cu, frame_level);
-	    
-	    Assignment st2 = st;
-	    std::vector<int> tmp;
-	    for (int i = 0; i < cu.size() ; ++ i) {
-	    	if (st2[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
-	    		tmp.push_back (cu[i]);
-	    		st2[abs(cu[i])-model_->num_inputs ()-1] = 0;
-	    	}
-	    }
-	    
-	    int res = tmp.size ();
-	    //reorder (tmp, frame_level);
-	    for (int i = 0; i < st2.size (); ++ i) {
-	    //for (int i = st2.size()-1; i >= 0; -- i) {
-	        if (st2[i] != 0) //not already in tmp
-	            //tmp.insert (tmp.begin (), st2[i]);
-	            tmp.push_back (st2[i]);
-	    }
-	    st = tmp;
-	    */
+        /*
 	    std::vector<int> tmp;
 	    get_priority (st, frame_level, tmp);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
-	    
-	    
-	    /*
-	    Cube& cu = (frame_level+1 < F_.size ()) ? cubes_[frame_level+1] : cube_;
-	    if (cu.empty ()) {  
-	        cu = st;
-	    	return;
-	    }
-	    std::vector<int> tmp;
-	    
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
-	    if (frame.size () != 0) {
-	        Cube& cube = frame[frame.size()-1];
-	        for (int i = 0; i < cube.size() ; i ++) {
-	    	    if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i])
-	    		    tmp.push_back (cube[i]);
-	        }
-	    }
-	    
-	    int sz = tmp.size ();
-	    for (int i = 0; i < cu.size() ; i ++) {
-	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i])
-	    		tmp.push_back (cu[i]);
-	    }
-	    //cu = tmp;
-	    cu.clear ();
-	    for (int i = sz; i < tmp.size (); i ++)
-	        cu.push_back (tmp[i]);
-	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    */
+	    
+	    std::vector<int> tmp2;
+	    get_priority (st, frame_level, tmp2);
+	    
+	    std::vector<int> tmp_st, tmp;
+	    tmp_st.reserve (st.size());
+	    tmp.reserve (st.size());
+	    Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
+	    if (cube.empty ()) {
+	        cube = st;
+	        return;
+	    }
+	    for (int i = 0; i < cube.size (); ++ i) {
+	        if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i]) 
+	    		tmp_st.push_back (cube[i]);
+	    	else
+	    	    tmp.push_back (-cube[i]);
+	    }
+	    
+	    for (int i = 0; i < tmp.size (); ++ i)
+	        tmp_st.push_back (tmp[i]);
+	        
+	    st = tmp_st;
+	    cube = st;
+	    
+	    st.insert (st.begin (), tmp2.begin (), tmp2.end ());
 	}
 	
 		

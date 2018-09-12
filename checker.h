@@ -97,29 +97,10 @@ namespace car
 		Bsequence B_;
 		Frame frame_;   //to store the frame willing to be added in F_ in one step
 		
-		std::vector<int> frame_element_counter_;  //It is supposed to have the length of 2*(num_inputs+num_latches+1)
-		                                          //frame_element_counter_[2*i] stores the number of appearance for latch i in F_, 
-		                                          //and frame_element_counter_[2*i+1] stores the number of appearance for -i in F_;
-		void update_frame_element_counter (Cube& cu, bool flag);
-	   
-	    inline void sort_based_on_frame_element_counter (Assignment& st) {
-	        //std::sort (st.begin(), st.end (), Comparator (frame_element_counter_));
-	        /*
-	        Assignment tmp;
-	        for (int i = st.size()-1; i >= 0; i --)
-	            tmp.push_back (st[i]);
-	        st = tmp;
-	        */
-	        std::sort (st.begin(), st.end (), Comparator (model_));
-	    }
 	    
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void get_priority (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level); 
-	    void reorder (std::vector<int>& v, const int frame_level);
-	    void update_ordered (std::vector<int> v, const int frame_level);
-	    bool binary_search (const int id, std::vector<int>& v, int l, int r);
-	    std::vector<Cube> ordered_;
 	    
 	    std::vector<Cube> cubes_; //corresponds to F_, i.e. cubes_[i] corresponds to F_[i]
 	    Cube cube_;  //corresponds to frame_
@@ -229,7 +210,6 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        //sort_based_on_frame_element_counter (st2);
 	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
@@ -241,7 +221,6 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        //sort_based_on_frame_element_counter (st2);
 	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
 	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
