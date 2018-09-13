@@ -171,9 +171,10 @@ namespace car
 	*       0: The safe result is reported
 	*       -1: else
 	*/
-	int Checker::do_search (const int frame_level){
-	    for (int i = B_.size () - 1; i >= 0; i --){
-	        for (int j = 0; j < B_[i].size (); j ++){
+	int Checker::do_search (const int frame_level) {
+	    //for (int i = B_.size () - 1; i >= 0; -- i) {
+	    for (int i = 0; i < B_.size(); ++ i) {
+	        for (int j = 0; j < B_[i].size (); ++ j) {
 			    if (try_satisfy_by (frame_level, B_[i][j]))
 			        return 1;
 				if (safe_reported ())
@@ -366,7 +367,7 @@ namespace car
 	        frame.push_back (cu);
 		}
 		F_.push_back (frame);
-		Cube cu;
+		Cube& cu = init_->s();
 		cubes_.push_back (cu);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
@@ -678,16 +679,13 @@ namespace car
 	    get_priority (st, frame_level, tmp);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    */
-	    
-	    std::vector<int> tmp2;
-	    get_priority (st, frame_level, tmp2);
-	    
+	    	    
 	    std::vector<int> tmp_st, tmp;
 	    tmp_st.reserve (st.size());
 	    tmp.reserve (st.size());
 	    Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
 	    if (cube.empty ()) {
-	        cube = st;
+	        //cube = st;
 	        return;
 	    }
 	    for (int i = 0; i < cube.size (); ++ i) {
@@ -701,9 +699,8 @@ namespace car
 	        tmp_st.push_back (tmp[i]);
 	        
 	    st = tmp_st;
-	    cube = st;
-	    
-	    st.insert (st.begin (), tmp2.begin (), tmp2.end ());
+	    //cube = st;
+
 	}
 	
 		

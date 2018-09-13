@@ -214,6 +214,12 @@ namespace car
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
+	        if (!res) {
+	            if (0 < cubes_.size ()) 
+		            cubes_[0] = st2;
+		        else
+		            cube_ = st2;
+	        }
 	        return res;
 	    }
 	    
@@ -226,6 +232,12 @@ namespace car
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();
 		    stats_->count_main_solver_SAT_time_end ();
+		    if (!res) {
+		        if (frame_level+1 < cubes_.size ()) 
+		            cubes_[frame_level+1] = st2;
+		        else
+		            cube_ = st2;
+		    }
 		    return res;
 	    }
 	    
