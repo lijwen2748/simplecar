@@ -679,7 +679,37 @@ namespace car
 	    get_priority (st, frame_level, tmp);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    */
-	    	    
+	    
+	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
+	    if (frame.size () == 0)  
+	    	return;
+	    Cube& cu = frame[frame.size()-1];
+	    std::vector<int> tmp, tmp_st;
+	    tmp.reserve (st.size());
+	    tmp_st.reserve (st.size ());
+	    int j = 0;
+	    for (int i = 0; i < st.size (); ++ i) {
+	        if (j >= cu.size ()) 
+	            tmp_st.push_back (st[i]);
+	        else {
+	            if (abs(st[i]) < abs (cu[j])) {
+	                tmp.push_back (st[i]);
+	            }
+	            else {
+	                if (st[i] != cu[j])
+	                    tmp.push_back (st[i]);
+	                else
+	                    tmp_st.push_back (st[i]);
+	                ++ j;
+	            }
+	        }
+	    }
+	    
+	    for (int i = 0; i < tmp.size (); ++ i)
+	        tmp_st.push_back (tmp[i]);
+	    st = tmp_st;
+	    	
+	    /*	    
 	    std::vector<int> tmp_st, tmp;
 	    tmp_st.reserve (st.size());
 	    tmp.reserve (st.size());
@@ -700,7 +730,7 @@ namespace car
 	        
 	    st = tmp_st;
 	    //cube = st;
-
+        */
 	}
 	
 		
