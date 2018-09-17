@@ -215,10 +215,15 @@ namespace car
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
 	        if (!res) {
+	        	Assignment st3; 
+		    	st3.reserve (model_->num_latches());
+		    	for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
+		    		st3.push_back (st2[i]);
+
 	            if (0 < cubes_.size ()) 
-		            cubes_[0] = st2;
+		            cubes_[0] = st3;
 		        else
-		            cube_ = st2;
+		            cube_ = st3;
 	        }
 	        return res;
 	    }
@@ -233,10 +238,14 @@ namespace car
 		    bool res = solver_->solve_with_assumption ();
 		    stats_->count_main_solver_SAT_time_end ();
 		    if (!res) {
+		    	Assignment st3; 
+		    	st3.reserve (model_->num_latches());
+		    	for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
+		    		st3.push_back (st2[i]);
 		        if (frame_level+1 < cubes_.size ()) 
-		            cubes_[frame_level+1] = st2;
+		            cubes_[frame_level+1] = st3;
 		        else
-		            cube_ = st2;
+		            cube_ = st3;
 		    }
 		    return res;
 	    }

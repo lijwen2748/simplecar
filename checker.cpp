@@ -172,8 +172,21 @@ namespace car
 	*       -1: else
 	*/
 	int Checker::do_search (const int frame_level) {
-	    //for (int i = B_.size () - 1; i >= 0; -- i) {
-	    for (int i = 0; i < B_.size(); ++ i) {
+		vector<State*> states;
+		for (int i = 0; i < B_.size (); ++ i) {
+			for (int j = 0; j < B_[i].size (); ++ j) 
+				states.push_back (B_[i][j]);
+		}
+		for (int i = 0; i < states.size (); ++ i) {
+			if (try_satisfy_by (frame_level, states[i]))
+			    return 1;
+			if (safe_reported ())
+				return 0;
+		}
+		
+		/*
+	    for (int i = B_.size () - 1; i >= 0; -- i) {
+	    //for (int i = 0; i < B_.size(); ++ i) {
 	        for (int j = 0; j < B_[i].size (); ++ j) {
 			    if (try_satisfy_by (frame_level, B_[i][j]))
 			        return 1;
@@ -181,6 +194,7 @@ namespace car
 				    return 0;
 			    }
 		    }
+		    */
 		return -1;
 	}
 	
@@ -680,6 +694,7 @@ namespace car
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    */
 	    
+	    /*
 	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
 	    if (frame.size () == 0)  
 	    	return;
@@ -708,8 +723,11 @@ namespace car
 	    for (int i = 0; i < tmp.size (); ++ i)
 	        tmp_st.push_back (tmp[i]);
 	    st = tmp_st;
-	    	
-	    /*	    
+	    */
+	    
+	    std::vector<int> prefix;
+	    get_priority (st, frame_level, prefix);	
+	    	    
 	    std::vector<int> tmp_st, tmp;
 	    tmp_st.reserve (st.size());
 	    tmp.reserve (st.size());
@@ -730,7 +748,9 @@ namespace car
 	        
 	    st = tmp_st;
 	    //cube = st;
-        */
+	    
+	    st.insert (st.begin (), prefix.begin (), prefix.end ());
+        
 	}
 	
 		
