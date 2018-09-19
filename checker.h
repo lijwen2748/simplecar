@@ -255,6 +255,7 @@ namespace car
 	    inline void clear_frame (){
 	        frame_.clear ();
 	        cube_.clear ();
+	        comm_.clear ();
 	        for (int i = 0; i < frame_.size (); i ++)
 	        	start_solver_->add_clause_with_flag (frame_[i]);
 	    }
