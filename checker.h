@@ -104,6 +104,8 @@ namespace car
 	    
 	    std::vector<Cube> cubes_; //corresponds to F_, i.e. cubes_[i] corresponds to F_[i]
 	    Cube cube_;  //corresponds to frame_
+	    std::vector<Cube> comms_;
+	    Cube comm_;
 	    
 		
 		bool safe_reported_;  //true means ready to return SAFE

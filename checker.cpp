@@ -379,10 +379,11 @@ namespace car
 	             return;
 	        }
 	        frame.push_back (cu);
+	        comms_.push_back (cu);
 		}
 		F_.push_back (frame);
-		Cube& cu = init_->s();
-		cubes_.push_back (cu);
+		Cube& c = init_->s();
+		cubes_.push_back (c);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
 	
@@ -551,6 +552,7 @@ namespace car
 	{
 		F_.push_back (frame_);
 		cubes_.push_back (cube_);
+		comms_.push_back (comm_);
 		solver_->add_new_frame (frame_, F_.size()-1, forward_);
 	}
 	
@@ -604,6 +606,13 @@ namespace car
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
+		//update comm
+		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
+		if (comm.empty ())
+		    comm = cu;
+		else {
+		    comm = vec_intersect (cu, comm);
+		}
 		frame = tmp_frame;
 		
 		if (frame_level < int (F_.size ()))
@@ -750,7 +759,15 @@ namespace car
 	    //cube = st;
 	    
 	    st.insert (st.begin (), prefix.begin (), prefix.end ());
-        
+	    
+	    Cube& comm = (frame_level+1 < comms_.size ()) ? comms_[frame_level+1] : comm_;
+	    vector<int> tmp_comm;
+	    tmp_comm.reserve (comm.size ());
+	    for (int i = 0; i < comm.size (); ++ i) {
+	        if (st[abs(comm[i])-model_->num_inputs ()-1] == comm[i]) 
+	    		tmp_comm.push_back (comm[i]);
+	    }
+        st.insert (st.begin (), tmp_comm.begin(), tmp_comm.end ());
 	}
 	
 		
