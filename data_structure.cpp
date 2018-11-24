@@ -59,6 +59,7 @@
  		    dep_ = 0;
  		else
  		    dep_ = s->dep_ + 1;
+		work_count_ = 0;
  	}
  	
  	bool State::imply (const Cube& cu) const

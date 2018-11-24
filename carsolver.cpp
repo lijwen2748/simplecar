@@ -28,8 +28,8 @@
 using namespace std;
 
 #ifndef ENABLE_PICOSAT  
-//using namespace Minisat;
-using namespace Glucose;
+using namespace Minisat;
+//using namespace Glucose;
 #endif
 
 namespace car

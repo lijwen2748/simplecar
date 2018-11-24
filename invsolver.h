@@ -96,8 +96,8 @@ namespace car
 				assumption_pop ();
  				assumption_push (-l);
 				#else
-				//Minisat::Lit l = assumption_.last ();
-				Glucose::Lit l = assumption_.last ();
+				Minisat::Lit l = assumption_.last ();
+				//Glucose::Lit l = assumption_.last ();
 				assumption_.pop ();
  				assumption_.push (~l);
  				#endif

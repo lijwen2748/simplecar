@@ -89,6 +89,9 @@
  		
  		inline int work_level () const {return work_level_;}
  		inline void set_work_level (int id) {work_level_ = id;}
+		inline void work_count_inc () {work_count_ ++;}
+ 		inline int work_count () {return work_count_;}
+ 		inline int work_count_reset () {work_count_ = 0;}
  		
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
@@ -107,6 +110,7 @@
  		std::vector<int> nexts_; //the next part which can be decided by the state without input
  		
  		int work_level_;
+		int work_count_;
  		
  		
  		int detect_dead_start_; //to store the start position to check whether it is a dead state

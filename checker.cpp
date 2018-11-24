@@ -171,36 +171,38 @@ namespace car
 	*       0: The safe result is reported
 	*       -1: else
 	*/
-	int Checker::do_search (const int frame_level) {
-		vector<State*> states;
-		for (int i = 0; i < B_.size (); ++ i) {
-			for (int j = 0; j < B_[i].size (); ++ j) 
-				states.push_back (B_[i][j]);
-		}
-		for (int i = 0; i < states.size (); ++ i) {
-			if (try_satisfy_by (frame_level, states[i]))
-			    return 1;
-			if (safe_reported ())
-				return 0;
-		}
-		
-		/*
-	    for (int i = B_.size () - 1; i >= 0; -- i) {
-	    //for (int i = 0; i < B_.size(); ++ i) {
-	        for (int j = 0; j < B_[i].size (); ++ j) {
-			    if (try_satisfy_by (frame_level, B_[i][j]))
-			        return 1;
+	int Checker::do_search (const int frame_level) {	
+		if (begin_) {
+			vector<State*> states;
+			for (int i = 0; i < B_.size (); ++ i) {
+				for (int j = 0; j < B_[i].size (); ++ j) 
+					states.push_back (B_[i][j]);
+			}
+			for (int i = 0; i < states.size (); ++ i) {
+				if (try_satisfy_by (frame_level, states[i]))
+			    	return 1;
 				if (safe_reported ())
-				    return 0;
+					return 0;
+			}
+		}
+	
+		if (end_) {
+	    	for (int i = B_.size () - 1; i >= 0; -- i) {
+	        	for (int j = 0; j < B_[i].size (); ++ j) {
+			    	if (try_satisfy_by (frame_level, B_[i][j]))
+			        	return 1;
+					if (safe_reported ())
+				    	return 0;
 			    }
 		    }
-		    */
+		}
+		   
 		return -1;
 	}
 	
 	
 	
-	bool Checker::try_satisfy_by (int frame_level, const State* s)
+	bool Checker::try_satisfy_by (int frame_level, State* s)
 	{
 		if (tried_before (s, frame_level+1))
 			return false;
@@ -255,6 +257,14 @@ namespace car
 		frame_level += 1;
 		if (frame_level < int (F_.size ()))
 		{
+		   /*
+		    if (s->work_count () >= MAX_TRY) {
+		        s->set_work_level (frame_level);
+		        states_.push_back (s);
+		        return false;
+		    }
+		    s->work_count_inc ();
+		   */
 		    return try_satisfy_by (frame_level, s);
 		}
 		
@@ -264,7 +274,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
 	{
 	    
 		model_ = model;
@@ -283,6 +293,11 @@ namespace car
 		minimal_update_level_ = F_.size ()-1;
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
+		
+		begin_ = begin;
+		end_ = end;
+		inter_ = inter;
+		rotate_ = rotate;
 	}
 	Checker::~Checker ()
 	{
@@ -379,11 +394,11 @@ namespace car
 	             return;
 	        }
 	        frame.push_back (cu);
-	        comms_.push_back (cu);
+		comms_.push_back (cu);
 		}
 		F_.push_back (frame);
-		Cube& c = init_->s();
-		cubes_.push_back (c);
+		Cube& cu = init_->s();
+		cubes_.push_back (cu);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
 	
@@ -606,13 +621,15 @@ namespace car
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
+		/*
 		//update comm
 		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
 		if (comm.empty ())
-		    comm = cu;
+			comm = cu;
 		else {
-		    comm = vec_intersect (cu, comm);
+		        comm = vec_intersect (cu, comm);
 		}
+		*/
 		frame = tmp_frame;
 		
 		if (frame_level < int (F_.size ()))
@@ -697,12 +714,11 @@ namespace car
 	
 	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
 	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
-        /*
+		/*
 	    std::vector<int> tmp;
 	    get_priority (st, frame_level, tmp);
 	    st.insert (st.begin (), tmp.begin (), tmp.end ());
 	    */
-	    
 	    /*
 	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
 	    if (frame.size () == 0)  
@@ -735,8 +751,10 @@ namespace car
 	    */
 	    
 	    std::vector<int> prefix;
-	    get_priority (st, frame_level, prefix);	
-	    	    
+	    if (inter_) 
+	    	get_priority (st, frame_level, prefix);	
+	    
+	    if (rotate_) { 	    
 	    std::vector<int> tmp_st, tmp;
 	    tmp_st.reserve (st.size());
 	    tmp.reserve (st.size());
@@ -757,17 +775,20 @@ namespace car
 	        
 	    st = tmp_st;
 	    //cube = st;
+	    }
 	    
 	    st.insert (st.begin (), prefix.begin (), prefix.end ());
-	    
-	    Cube& comm = (frame_level+1 < comms_.size ()) ? comms_[frame_level+1] : comm_;
+	  
+           /* 
+            Cube& comm = (frame_level+1 < comms_.size ()) ? comms_[frame_level+1] : comm_;
 	    vector<int> tmp_comm;
 	    tmp_comm.reserve (comm.size ());
 	    for (int i = 0; i < comm.size (); ++ i) {
 	        if (st[abs(comm[i])-model_->num_inputs ()-1] == comm[i]) 
 	    		tmp_comm.push_back (comm[i]);
 	    }
-        st.insert (st.begin (), tmp_comm.begin(), tmp_comm.end ());
+            st.insert (st.begin (), tmp_comm.begin(), tmp_comm.end ());
+	*/
 	}
 	
 		

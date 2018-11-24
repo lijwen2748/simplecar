@@ -30,8 +30,8 @@ extern "C" {
 #include "picosat/picosat.h"
 }
 #else
-//#include "minisat/core/Solver.h"
-#include "glucose/core/Solver.h"
+#include "minisat/core/Solver.h"
+//#include "glucose/core/Solver.h"
 #endif
 
 #include <vector>
@@ -42,7 +42,7 @@ namespace car
     #ifdef ENABLE_PICOSAT
     class CARSolver 
     #else
-	class CARSolver : public Glucose::Solver 
+	class CARSolver : public Minisat::Solver //Glucose:Solver
 	#endif
 	{
 	public:
@@ -59,8 +59,8 @@ namespace car
 		#ifdef ENABLE_PICOSAT
 		std::vector<int> assumption_;
 		#else
-		//Minisat::vec<Minisat::Lit> assumption_;  //Assumption for SAT solver
-		Glucose::vec<Glucose::Lit> assumption_;  //Assumption for SAT solver     
+		Minisat::vec<Minisat::Lit> assumption_;  //Assumption for SAT solver
+		//Glucose::vec<Glucose::Lit> assumption_;  //Assumption for SAT solver     
 		#endif
 		
 		//functions
@@ -80,11 +80,11 @@ namespace car
  	    int SAT_lit (int id); //create the Lit used in PicoSat SAT solver for the id.
  		int lit_id (int);  //return the id of SAT lit
  	    #else
- 		//Minisat::Lit SAT_lit (int id); //create the Lit used in SAT solver for the id.
- 		//int lit_id (Minisat::Lit);  //return the id of SAT lit
+ 		Minisat::Lit SAT_lit (int id); //create the Lit used in SAT solver for the id.
+ 		int lit_id (Minisat::Lit);  //return the id of SAT lit
  		
- 		Glucose::Lit SAT_lit (int id); //create the Lit used in SAT solver for the id.
- 		int lit_id (Glucose::Lit);  //return the id of SAT lit
+ 		//Glucose::Lit SAT_lit (int id); //create the Lit used in SAT solver for the id.
+ 		//int lit_id (Glucose::Lit);  //return the id of SAT lit
  		#endif
  		
  		//inline int size () {return clauses.size ();}

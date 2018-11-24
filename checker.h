@@ -36,6 +36,7 @@
 #include <algorithm>
 
 #define MAX_SOLVER_CALL 500
+#define MAX_TRY 4
 
 namespace car 
 {
@@ -58,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool verbose = false, bool minimal_uc = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -77,6 +78,11 @@ namespace car
 		bool minimal_uc_;
 		bool evidence_;
 		bool verbose_;
+		
+		//new flags for reorder and state enumeration
+		bool begin_, end_;  // for state enumeration
+		bool inter_, rotate_; //for reorder
+		//
 		//members
 		Statistics *stats_;
 		
@@ -104,9 +110,9 @@ namespace car
 	    
 	    std::vector<Cube> cubes_; //corresponds to F_, i.e. cubes_[i] corresponds to F_[i]
 	    Cube cube_;  //corresponds to frame_
+	    std::vector<State*> states_;
 	    std::vector<Cube> comms_;
-	    Cube comm_;
-	    
+	    Cube comm_; 
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
@@ -116,7 +122,7 @@ namespace car
 		void initialize_sequences ();
 		bool try_satisfy (const int frame_level);
 		int do_search (const int frame_level);
-		bool try_satisfy_by (int frame_level, const State* s);
+		bool try_satisfy_by (int frame_level, State* s);
 		bool invariant_found (int frame_level);
 		bool invariant_found_at (const int frame_level);
 		void inv_solver_add_constraint_or (const int frame_level);
@@ -255,7 +261,7 @@ namespace car
 	    inline void clear_frame (){
 	        frame_.clear ();
 	        cube_.clear ();
-	        comm_.clear ();
+		comm_.clear ();
 	        for (int i = 0; i < frame_.size (); i ++)
 	        	start_solver_->add_clause_with_flag (frame_[i]);
 	    }
