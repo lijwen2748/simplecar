@@ -77,8 +77,8 @@ void print_usage ()
   printf ("       -v              print verbose information (Default = off)\n");
   printf ("       -h              print help information\n");
   
-  printf ("NOTE: -f and -b cannot be used together!\n");
-  printf ("NOTE: -begin and -end cannot be used together!\n");
+  printf ("NOTE: either -f and -b must be chosen, but they cannot be used together!\n");
+  printf ("NOTE: either -begin or -end must be chosen, but they cannot be used together!\n");
   exit (0);
 }
 
@@ -117,7 +117,7 @@ void check_aiger (int argc, char** argv)
    
    bool begin = false;
    bool end = false;
-   bool inter = true;
+   bool inter = false;
    bool rotate = false;
    
    string input;
@@ -167,8 +167,9 @@ void check_aiger (int argc, char** argv)
    		else
    			print_usage ();
    }
-   if (!input_set || !output_dir_set)
+   if (!input_set || !output_dir_set || (!begin && !end))
    		print_usage ();
+   		
 
   //std::string output_dir (argv[3]);
   if (output_dir.at (output_dir.size()-1) != '/')

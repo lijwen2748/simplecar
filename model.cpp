@@ -27,6 +27,7 @@
 #include <iostream>
 #include <assert.h>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -57,6 +58,37 @@ namespace car{
 		
 		create_next_map (aig);
 		create_clauses (aig);
+		create_ordered_literals ();
+	}
+	
+	void Model::create_ordered_literals () {
+		hash_map<int, int> literals_map;
+		for (int i = 0; i < cls_.size (); ++ i) {
+			Clause& cl = cls_[i];
+			for (int j = 0; j < cl.size (); ++ j) {
+				if (is_latch_literal (cl[j])) {
+					auto it = literals_map.find (cl[j]);
+					if (it == literals_map.end ()) 
+						literals_map.insert (std::pair<int, int> (cl[j], 1));
+					else
+						it->second += 1;
+				}
+			}
+		}
+		
+		for (auto it = literals_map.begin (); it != literals_map.end (); ++ it) {
+			//cout << it->first << " -> " << it->second << endl;
+			ordered_literals_.push_back (it->first);
+		}
+		
+		//printf ("before sorting\n");
+		//car::print (ordered_literals_);
+		std::sort (ordered_literals_.begin (), ordered_literals_.end (), [literals_map] (int a, int b) -> bool {
+															auto it1 = literals_map.find (a);
+															auto it2 = literals_map.find (b);
+															return it1->second > it2->second;});
+		//printf ("after sorting\n");
+		//car::print (ordered_literals_);
 	}
 	
 	void Model::collect_trues (const aiger* aig)

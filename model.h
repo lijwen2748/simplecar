@@ -64,6 +64,8 @@ public:
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}
 	
+	inline std::vector<int>& ordered_literals () {return ordered_literals_;}
+	
 	//printer
 	void print ();
 
@@ -104,6 +106,8 @@ private:
 	                                   //BE careful the situation when next (a) = c and next (b) = c!!
 	
 	hash_set<unsigned> trues_;  //vars evaluated to be true, and their negation is false
+	
+	vect ordered_literals_;  
 	
 	
 	//functions
@@ -157,6 +161,10 @@ private:
 	    latches_start_ = cls_.size ();
 	}
 	
+	inline bool is_latch_literal (const int id) {
+		return abs (id) > num_inputs_ && abs (id) < num_inputs_+num_latches_;
+	}
+	
 	void collect_trues (const aiger* aig);
 	void create_next_map (const aiger* aig);
 	void create_clauses (const aiger* aig);
@@ -168,6 +176,8 @@ private:
 	void set_constraints (const aiger* aig);
 	void set_outputs (const aiger* aig);
 	void insert_to_reverse_next_map (const int index, const int val);
+	
+	void create_ordered_literals ();
 public:
 	bool propagate (const std::vector<int>& assump, std::vector<int>& res);
 	

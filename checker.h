@@ -214,11 +214,23 @@ namespace car
 	        }
 	    }
 	    
+	    inline void reorder (Assignment& st) {
+	    	Assignment tmp;
+	    	Assignment& ordered_literals = model_->ordered_literals ();
+	    	for (int i = 0; i < ordered_literals.size (); ++ i) {
+	    		int index = abs (ordered_literals[i]) - model_->num_inputs () -1;
+	    		if (-ordered_literals[i] == st[index])
+	    			tmp.push_back (st[index]);
+	    	}
+	    	st = tmp;
+	    }
+	    
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
+	        reorder (st2);
+	        //add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
@@ -240,7 +252,8 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
+	        reorder (st2);
+	        //add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
 	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();
