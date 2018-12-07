@@ -81,6 +81,7 @@ namespace car{
 			ordered_literals_.push_back (it->first);
 		}
 		
+		
 		//printf ("before sorting\n");
 		//car::print (ordered_literals_);
 		std::sort (ordered_literals_.begin (), ordered_literals_.end (), [literals_map] (int a, int b) -> bool {
@@ -89,6 +90,14 @@ namespace car{
 															return it1->second > it2->second;});
 		//printf ("after sorting\n");
 		//car::print (ordered_literals_);
+		
+		//add those literals not in literals_map
+		for (int x = num_inputs_+1; x <= num_inputs_+num_latches_; ++ x) {
+			if (literals_map.find (x) == literals_map.end ())
+				ordered_literals_.push_back (x);
+			if (literals_map.find (-x) == literals_map.end ())
+				ordered_literals_.push_back (-x);
+		}
 	}
 	
 	void Model::collect_trues (const aiger* aig)

@@ -162,7 +162,7 @@ private:
 	}
 	
 	inline bool is_latch_literal (const int id) {
-		return abs (id) > num_inputs_ && abs (id) < num_inputs_+num_latches_;
+		return abs (id) > num_inputs_ && abs (id) <= num_inputs_+num_latches_;
 	}
 	
 	void collect_trues (const aiger* aig);

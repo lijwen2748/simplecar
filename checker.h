@@ -222,6 +222,16 @@ namespace car
 	    		if (-ordered_literals[i] == st[index])
 	    			tmp.push_back (st[index]);
 	    	}
+	    	/*
+	    	if (st.size () != tmp.size ()) {
+	    		car::print (ordered_literals);
+	    		std::cout << "state size " << st.size () << std::endl;
+	    		car::print (st);
+	    		std::cout << "tmp state size " << tmp.size () << std::endl;
+	    		car::print (tmp);
+	    		exit (0);
+	    	}
+	    	*/
 	    	st = tmp;
 	    }
 	    
