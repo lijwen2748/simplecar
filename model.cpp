@@ -58,7 +58,7 @@ namespace car{
 		
 		create_next_map (aig);
 		create_clauses (aig);
-		create_ordered_literals ();
+		//create_ordered_literals ();  COMMENT: doesn'tt work.
 	}
 	
 	void Model::create_ordered_literals () {
@@ -77,19 +77,19 @@ namespace car{
 		}
 		
 		for (auto it = literals_map.begin (); it != literals_map.end (); ++ it) {
-			//cout << it->first << " -> " << it->second << endl;
+			cout << it->first << " -> " << it->second << endl;
 			ordered_literals_.push_back (it->first);
 		}
 		
 		
-		//printf ("before sorting\n");
-		//car::print (ordered_literals_);
+		printf ("before sorting\n");
+		car::print (ordered_literals_);
 		std::sort (ordered_literals_.begin (), ordered_literals_.end (), [literals_map] (int a, int b) -> bool {
 															auto it1 = literals_map.find (a);
 															auto it2 = literals_map.find (b);
 															return it1->second > it2->second;});
-		//printf ("after sorting\n");
-		//car::print (ordered_literals_);
+		printf ("after sorting\n");
+		car::print (ordered_literals_);
 		
 		//add those literals not in literals_map
 		for (int x = num_inputs_+1; x <= num_inputs_+num_latches_; ++ x) {

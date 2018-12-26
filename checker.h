@@ -104,6 +104,7 @@ namespace car
 		Frame frame_;   //to store the frame willing to be added in F_ in one step
 		
 	    
+	    bool is_in_common (const Cube& cu, const Cube& cube);
 	    void get_previous (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void get_priority (const Assignment& st, const int frame_level, std::vector<int>& res);
 	    void add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level); 
@@ -239,8 +240,8 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        reorder (st2);
-	        //add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
+	        //reorder (st2);
+	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
@@ -262,8 +263,8 @@ namespace car
 	        if (reconstruct_solver_required ())
 	            reconstruct_solver ();
 	        Assignment st2 = st;
-	        reorder (st2);
-	        //add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
+	        //reorder (st2);
+	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
 	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();

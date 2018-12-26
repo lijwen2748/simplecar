@@ -394,8 +394,9 @@ namespace car
 	             return;
 	        }
 	        frame.push_back (cu);
-		comms_.push_back (cu);
+		    comms_.push_back (cu);
 		}
+		
 		F_.push_back (frame);
 		Cube& cu = init_->s();
 		cubes_.push_back (cu);
@@ -621,15 +622,16 @@ namespace car
 		} 
 		stats_->count_clause_contain_time_end ();
 		tmp_frame.push_back (cu);
+		
+		if (rotate_) {
 		/*
-		//update comm
-		Cube& comm = (frame_level < int (comms_.size ())) ? comms_[frame_level] : comm_;
-		if (comm.empty ())
-			comm = cu;
-		else {
-		        comm = vec_intersect (cu, comm);
-		}
+		    //check whether cu is from the common part, if not, reset the corresponding cube
+		    Cube& cube = (frame_level < int (cubes_.size ())) ? cubes_[frame_level] : cube_;
+		    if (is_in_common (cu, cube))
+		        cube.clear ();
 		*/
+	    }
+	    
 		frame = tmp_frame;
 		
 		if (frame_level < int (F_.size ()))
@@ -670,6 +672,35 @@ namespace car
 	    return false;
 	}
 	
+	//check whether cu is from the common part stored in cube
+	bool Checker::is_in_common (const Cube& cu, const Cube& cube) {
+	    
+	    int j = 0;
+	    if (inter_) 
+	        j = cube.size () - model_->num_latches ();
+	    int end = 0;
+	    //set the last position to find
+	    for (int i = j; i < cube.size ()-1; ++i) {
+	        if (abs (cube[i]) > abs(cube[i+1])) {
+	            end = i;
+	            break;
+	        }
+	    }
+	    
+	    for (int i = 0; i < cu.size (); ++i) {
+	        for (; j <= end; ++j) {
+	            if (cu[i] == cube[j]) {
+	                ++j;
+	                break;
+	            }
+	            else if (abs (cu[i]) < abs (cube[j])) 
+	                return false;
+	        }
+	        if (j > end)
+	            return false;
+	    }
+	    return true;
+	}
 	
 	void Checker::get_previous (const Assignment& st, const int frame_level, std::vector<int>& res) {
 	    if (frame_level == -1) return;
@@ -714,81 +745,35 @@ namespace car
 	
 	//add the intersection of the last UC in frame_level+1 with the state \@ st to \@ st
 	void Checker::add_intersection_last_uc_in_frame_level_plus_one (Assignment& st, const int frame_level) {
-		/*
-	    std::vector<int> tmp;
-	    get_priority (st, frame_level, tmp);
-	    st.insert (st.begin (), tmp.begin (), tmp.end ());
-	    */
-	    /*
-	    Frame& frame = (frame_level+1 < F_.size ()) ? F_[frame_level+1] : frame_;
-	    if (frame.size () == 0)  
-	    	return;
-	    Cube& cu = frame[frame.size()-1];
-	    std::vector<int> tmp, tmp_st;
-	    tmp.reserve (st.size());
-	    tmp_st.reserve (st.size ());
-	    int j = 0;
-	    for (int i = 0; i < st.size (); ++ i) {
-	        if (j >= cu.size ()) 
-	            tmp_st.push_back (st[i]);
-	        else {
-	            if (abs(st[i]) < abs (cu[j])) {
-	                tmp.push_back (st[i]);
-	            }
-	            else {
-	                if (st[i] != cu[j])
-	                    tmp.push_back (st[i]);
-	                else
-	                    tmp_st.push_back (st[i]);
-	                ++ j;
-	            }
-	        }
-	    }
-	    
-	    for (int i = 0; i < tmp.size (); ++ i)
-	        tmp_st.push_back (tmp[i]);
-	    st = tmp_st;
-	    */
-	    
+		    
 	    std::vector<int> prefix;
 	    if (inter_) 
 	    	get_priority (st, frame_level, prefix);	
 	    
 	    if (rotate_) { 	    
-	    std::vector<int> tmp_st, tmp;
-	    tmp_st.reserve (st.size());
-	    tmp.reserve (st.size());
-	    Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
-	    if (cube.empty ()) {
-	        //cube = st;
-	        return;
-	    }
-	    for (int i = 0; i < cube.size (); ++ i) {
-	        if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i]) 
-	    		tmp_st.push_back (cube[i]);
-	    	else
-	    	    tmp.push_back (-cube[i]);
-	    }
+	        std::vector<int> tmp_st, tmp;
+	        tmp_st.reserve (st.size());
+	        tmp.reserve (st.size());
+	        Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
+	        if (cube.empty ()) {
+	            cube = st;
+	            return;
+	        }
+	        for (int i = 0; i < cube.size (); ++ i) {
+	            if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i]) 
+	    		    tmp_st.push_back (cube[i]);
+	    	    else
+	    	        tmp.push_back (-cube[i]);
+	        }
 	    
-	    for (int i = 0; i < tmp.size (); ++ i)
-	        tmp_st.push_back (tmp[i]);
+	        for (int i = 0; i < tmp.size (); ++ i)
+	            tmp_st.push_back (tmp[i]);
 	        
-	    st = tmp_st;
-	    //cube = st;
+	        st = tmp_st;
+	        cube = st;
 	    }
 	    
 	    st.insert (st.begin (), prefix.begin (), prefix.end ());
-	  
-           /* 
-            Cube& comm = (frame_level+1 < comms_.size ()) ? comms_[frame_level+1] : comm_;
-	    vector<int> tmp_comm;
-	    tmp_comm.reserve (comm.size ());
-	    for (int i = 0; i < comm.size (); ++ i) {
-	        if (st[abs(comm[i])-model_->num_inputs ()-1] == comm[i]) 
-	    		tmp_comm.push_back (comm[i]);
-	    }
-            st.insert (st.begin (), tmp_comm.begin(), tmp_comm.end ());
-	*/
 	}
 	
 		
