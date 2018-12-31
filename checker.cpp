@@ -153,10 +153,32 @@ namespace car
 			
 			s->set_depth (0);
 		    update_B_sequence (s);
-			if (try_satisfy_by (frame_level, s))
+		    
+		    initial_restart_limits ();
+		    vector<State*> states_stack;
+		    int ret = try_satisfy_by (frame_level, s, states_stack);
+		    while (ret == -1) {
+		        for (int i = 0; i < states_stack.size (); ++i) {//discards the new generated states
+				    delete states_stack[i];
+				}
+				states_stack.clear ();
+				
+				update_restart_limits ();
+				ret = try_satisfy_by (frame_level, s, states_stack);
+				cout << "restart: " << restart_internal_states_stack_limit_ << endl; 
+				stats_->count_restart ();
+		    }
+		    
+		    for (int i = 0; i < states_stack.size (); ++i) 
+		        update_B_sequence (states_stack[i]);
+
+		    states_stack.clear ();
+		        
+			if (ret == 1) 
 			    return true;
 			if (safe_reported ())
 				return false;
+				
 		    s = enumerate_start_state ();
 		}
 	
@@ -172,71 +194,143 @@ namespace car
 	*       -1: else
 	*/
 	int Checker::do_search (const int frame_level) {	
+	    vector<State*> states;
+		for (int i = 0; i < B_.size (); ++ i) {
+			for (int j = 0; j < B_[i].size (); ++ j) 
+				states.push_back (B_[i][j]);
+		}
+		vector<State*> states_stack;
+		int res = -1;
+		
+		if (restart_) {
+		    initial_restart_limits ();
+		    
+		    vector<State*> states_cp;
+		    while (!states.empty ()) {
+		        State *s = states[0];
+		        int ret = try_satisfy_by (frame_level, s, states_stack);
+		        
+				states.erase (states.begin ()); //remove s from the beginning of states
+				if (ret == -1) {//not finish the search for s
+				    states_cp.push_back (s);  //add s to the end of states, to re-do the search starting from s later
+				    for (int i = 0; i < states_stack.size (); ++i) //discards the new generated states
+				        delete states_stack[i];
+				    states_stack.clear ();
+				}
+				else {
+				    for (int i = 0; i < states_stack.size (); ++i) 
+				        update_B_sequence (states_stack[i]);
+				        
+				    states_stack.clear ();
+				}
+				if (states.empty ()) {//update the restart flags
+				    states = states_cp;
+			        states_cp.clear ();
+			        if (!states.empty ()) {
+			            update_restart_limits ();
+			            cout << "restart: " << restart_internal_states_stack_limit_ << endl; 
+			            stats_->count_restart ();
+			        }
+			    }
+			    
+			    if (ret == 1) {
+			    	res = 1;
+			    	break;
+			    }
+				else if (safe_reported ()) {
+					res = 0;
+					break;
+				}
+		    }
+		    
+		    return res;
+		}
+		else {
+		
 		if (begin_) {
-			vector<State*> states;
-			for (int i = 0; i < B_.size (); ++ i) {
-				for (int j = 0; j < B_[i].size (); ++ j) 
-					states.push_back (B_[i][j]);
-			}
+			
 			for (int i = 0; i < states.size (); ++ i) {
-				if (try_satisfy_by (frame_level, states[i]))
-			    	return 1;
-				if (safe_reported ())
-					return 0;
+			    int ret = try_satisfy_by (frame_level, states[i], states_stack);
+			    for (int j = 0; j < states_stack.size (); ++j) 
+		            update_B_sequence (states_stack[j]);
+	
+		        states_stack.clear ();
+				if (ret == 1) {
+			    	res = 1;
+			    	break;
+			    }
+				else if (safe_reported ()) {
+					res = 0;
+					break;
+				}
 			}
 		}
+		else if (end_) {
+		    for (int i = states.size ()-1; i >= 0; -- i) {
+		        int ret = try_satisfy_by (frame_level, states[i], states_stack);
+			    for (int j = 0; j < states_stack.size (); ++j) 
+		            update_B_sequence (states_stack[j]);
 	
-		if (end_) {
-	    	for (int i = B_.size () - 1; i >= 0; -- i) {
-	        	for (int j = 0; j < B_[i].size (); ++ j) {
-			    	if (try_satisfy_by (frame_level, B_[i][j]))
-			        	return 1;
-					if (safe_reported ())
-				    	return 0;
+		        states_stack.clear ();
+				if (ret == 1) {
+			    	res = 1;
+			    	break;
 			    }
-		    }
+				else if (safe_reported ()) {
+					res = 0;
+				    break;
+				}
+			}
+		}
+		else {
+		    cout << "The state enumeration flag is not assigned: either -begin or -end" << endl;
+		    exit (0);
 		}
 		   
-		return -1;
+		return res;
+		}
 	}
 	
 	
 	
-	bool Checker::try_satisfy_by (int frame_level, State* s)
-	{
+	int Checker::try_satisfy_by (int frame_level, State* s, std::vector<State*>& states_stack)
+	{  
+	    if (restart_ && states_stack.size () >= restart_internal_states_stack_limit_) 
+	        return -1;
+	    
 		if (tried_before (s, frame_level+1))
-			return false;
-		
+			return 0;
+					
 		if (frame_level < minimal_update_level_)
 			minimal_update_level_ = frame_level;
-		
 		
 		if (frame_level == -1)
 		{
 		    if (immediate_satisfiable (s))
-		        return true;
+		        return 1;
 		}
 		else
 		{
 		    
-		    while (solve_with (const_cast<State*>(s)->s (), frame_level))
+		    while (solve_with (s->s (), frame_level))
 		    {
 			    State* new_state = get_new_state (s);
 			    assert (new_state != NULL);
 			    
 			    //////generate dot data
 			    if (dot_ != NULL)
-			        (*dot_) << "\n\t\t\t" << const_cast<State*> (s)->id () << " -- " << new_state->id ();
+			        (*dot_) << "\n\t\t\t" << s->id () << " -- " << new_state->id ();
 			    //////generate dot data
 			    
 			    int new_level = get_new_level (new_state, frame_level);
-
-			    update_B_sequence (new_state);
 			    
-			    if (try_satisfy_by (new_level, new_state))
-				    return true;
+                states_stack.push_back (new_state);
+			    
+			    int ret = try_satisfy_by (new_level, new_state, states_stack);
+			    if (ret != 0)
+				    return ret;
 				if (safe_reported ())
-				    return false;
+				    return 0;
 				if (frame_level < F_.size ())
 				{
 				    
@@ -244,7 +338,7 @@ namespace car
 				    {
 				        frame_level = frame_level + 1;
 					    if (frame_level >= F_.size ())
-						    return false;	
+						    return 0;	
 				    }
 				}
 		    }
@@ -252,23 +346,13 @@ namespace car
 
 		update_F_sequence (s, frame_level+1);
 		if (safe_reported ())
-			return false;
+			return 0;
 		
 		frame_level += 1;
 		if (frame_level < int (F_.size ()))
-		{
-		   /*
-		    if (s->work_count () >= MAX_TRY) {
-		        s->set_work_level (frame_level);
-		        states_.push_back (s);
-		        return false;
-		    }
-		    s->work_count_inc ();
-		   */
-		    return try_satisfy_by (frame_level, s);
-		}
+		    return try_satisfy_by (frame_level, s, states_stack);
 		
-		return false;
+		return 0;
 	}
 	
 		
@@ -298,6 +382,9 @@ namespace car
 		end_ = end;
 		inter_ = inter;
 		rotate_ = rotate;
+		////////////////////////
+		restart_ = true;
+		///////////////////////
 	}
 	Checker::~Checker ()
 	{

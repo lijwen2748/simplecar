@@ -79,6 +79,11 @@ namespace car
 		bool evidence_;
 		bool verbose_;
 		
+		bool restart_;
+		int restart_internal_states_stack_limit_;
+		int restart_external_states_stack_limit_;
+		double restart_increase_rate_;
+		
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration
 		bool inter_, rotate_; //for reorder
@@ -123,7 +128,7 @@ namespace car
 		void initialize_sequences ();
 		bool try_satisfy (const int frame_level);
 		int do_search (const int frame_level);
-		bool try_satisfy_by (int frame_level, State* s);
+		int try_satisfy_by (int frame_level, State* s, std::vector<State*>&);
 		bool invariant_found (int frame_level);
 		bool invariant_found_at (const int frame_level);
 		void inv_solver_add_constraint_or (const int frame_level);
@@ -151,6 +156,19 @@ namespace car
 				
 		
 		//inline functions
+		inline void initial_restart_limits () {
+		    restart_internal_states_stack_limit_ = F_.size() + 100;
+		    restart_external_states_stack_limit_ = 500;
+		    restart_increase_rate_ = 1.1;
+		}
+		inline void update_restart_limits () {
+		    restart_internal_states_stack_limit_ *= restart_increase_rate_;
+		    if (restart_internal_states_stack_limit_ >= restart_external_states_stack_limit_) {
+		        restart_external_states_stack_limit_ *= restart_increase_rate_;
+		        restart_internal_states_stack_limit_ = F_.size() + 100;
+		    }
+		}
+		
 		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, verbose_);
 		}

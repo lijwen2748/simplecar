@@ -57,6 +57,7 @@ class Statistics
         	num_detect_dead_state_SAT_calls_ = 0;
         	time_detect_dead_state_SAT_calls_ = 0.0;
         	num_detect_dead_state_success_ = 0;
+        	num_restart_ = 0;
 
         }
         ~Statistics () {}
@@ -87,6 +88,11 @@ class Statistics
             //std::cout << "Sum of reduce uc: " << reduce_uc_size_ << std::endl;
             //std::cout << "Reduce uc ratio: " << 1-(reduce_uc_size_/double (orig_uc_size_)) << std::endl;
             std::cout << "Total Time: " << time_total_ << std::endl;
+            std::cout << "Number of restart: " << num_restart_ << std::endl;
+        }
+        
+        inline void count_restart () {
+            num_restart_ += 1;
         }
         inline void count_SAT_time_start ()
         {
@@ -222,6 +228,7 @@ class Statistics
         }
         
     private:
+        int num_restart_;
         int num_SAT_calls_;
         double time_SAT_calls_;
         int num_main_solver_SAT_calls_;
