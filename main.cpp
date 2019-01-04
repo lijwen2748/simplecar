@@ -64,14 +64,14 @@ void  signal_handler (int sig_num)
 
 void print_usage () 
 {
-  printf ("Usage: simplecar <-f|-b> [-e|-v|-h] <-begin|-end> <-interation|-rotation|-interation -rotation> <aiger file> <output directory>\n");
+  printf ("Usage: simplecar <-f|-b> [-e|-v|-h] <-begin|-end> <-intersection|-rotation|-intersection -rotation> <aiger file> <output directory>\n");
   printf ("       -f              forward checking (Default = backward checking)\n");
   printf ("       -b              backward checking \n");
   //printf ("       -p          enable propagation (Default = off)\n");
   //printf ("       -g          enable greedy search (Default = off)\n");
   printf ("       -begin          state numeration from begin of the sequence\n");
   printf ("       -end            state numeration from end of the sequence\n");
-  printf ("       -interaion      enable intersection heuristic\n");
+  printf ("       -intersection   enable intersection heuristic\n");
   printf ("       -rotation       enable rotation heurisitc\n");
   printf ("       -e              print witness (Default = off)\n");
   printf ("       -v              print verbose information (Default = off)\n");
@@ -150,7 +150,7 @@ void check_aiger (int argc, char** argv)
    			}
    			end = true;
    		}
-   		else if (strcmp (argv[i], "-interation") == 0)
+   		else if (strcmp (argv[i], "-intersection") == 0)
    			inter = true;
    		else if (strcmp (argv[i], "-rotation") == 0)
    			rotate = true;

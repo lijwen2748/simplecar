@@ -740,6 +740,8 @@ namespace car
 	    	}
 	    }
 	    res = tmp;
+	    //cout << "Intersection UC is: ";
+	    //car::print (res);
 	    //res.insert (res.begin (), tmp.begin (), tmp.end ());
 	}
 	
