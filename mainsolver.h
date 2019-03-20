@@ -48,15 +48,15 @@ class MainSolver : public CARSolver
 		inline bool solve_with_assumption (const Assignment& st, const int p)
 		{
 		    set_assumption (st, p);
-		    if (verbose_)
-		    	std::cout << "MainSolver::";
+		    //if (verbose_)
+		    	//std::cout << "MainSolver::";
 		    return solve_assumption ();
 		}
 		
 		inline bool solve_with_assumption ()
 		{
-			if (verbose_)
-		    	std::cout << "MainSolver::";
+			//if (verbose_)
+		    	//std::cout << "MainSolver::";
 		    return solve_assumption ();
 		}
 		

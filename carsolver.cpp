@@ -74,19 +74,19 @@ namespace car
 	//return the UC from SAT solver when it provides UNSAT
  	std::vector<int> CARSolver::get_uc () {
  		std::vector<int> reason;
-		if (verbose_)
-			cout << "get uc: \n";
+		//if (verbose_)
+			//cout << "get uc: \n";
 		//const int *p = picosat_failed_assumptions (picosat_);
 		const int *p = picosat_mus_assumptions (picosat_, 0, NULL, 0);
 		while (*p != 0) {
 		    reason.push_back (*p);
-		    if (verbose_)
-				cout << *p << ", ";
+		    //if (verbose_)
+				//cout << *p << ", ";
 		    p++; 
 		}
  		
-		if (verbose_)
-			cout << endl;
+		//if (verbose_)
+			//cout << endl;
     	return reason;
   	}
 	
@@ -119,6 +119,7 @@ namespace car
  	bool CARSolver::solve_assumption ()
 	{
 		lbool ret = solveLimited (assumption_);
+		/*
 		if (verbose_)
 		{
 			cout << "CARSolver::solve_assumption: assumption_ is" << endl;
@@ -126,6 +127,7 @@ namespace car
 				cout << lit_id (assumption_[i]) << ", ";
 			cout << endl;
 		}
+		*/
 		if (ret == l_True)
      		return true;
    		else if (ret == l_Undef)
@@ -152,17 +154,17 @@ namespace car
  	std::vector<int> CARSolver::get_uc ()
  	{
  		std::vector<int> reason;
-		if (verbose_)
-			cout << "get uc: \n";
+		//if (verbose_)
+			//cout << "get uc: \n";
  		for (int k = 0; k < conflict.size(); k++) 
  		{
         	Lit l = conflict[k];
         	reason.push_back (-lit_id (l));
-			if (verbose_)
-				cout << -lit_id (l) << ", ";
+			//if (verbose_)
+				//cout << -lit_id (l) << ", ";
     	}
-		if (verbose_)
-			cout << endl;
+		//if (verbose_)
+			//cout << endl;
     	return reason;
   	}
 	

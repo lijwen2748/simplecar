@@ -51,8 +51,8 @@ namespace car {
         
         inline bool solve_with_assumption ()
         {
-        	if (verbose_)
-        		std::cout << "StartSolver::";
+        	//if (verbose_)
+        		//std::cout << "StartSolver::";
         	return solve_assumption ();
         }
         
