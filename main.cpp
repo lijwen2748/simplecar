@@ -42,6 +42,9 @@ void  signal_handler (int sig_num)
 		
 		ch->print_frames_sizes ();
 	    cout << "frame_ size:" << ch->frame_size () << endl;
+	    
+	    cout << "invariant size:" << ch->invariant_size () << endl;
+	    //ch->print_frames ();
 	    delete ch;
 	    ch = NULL;
 	}

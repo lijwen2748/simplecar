@@ -45,10 +45,12 @@ namespace car{
 		num_outputs_ = aig->num_outputs;
 		
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
-		max_id_ = aig->maxvar+2;
-		true_ = max_id_ - 1;
-		false_ = max_id_;
+		true_ = aig->maxvar + 1;
+		false_ = aig->maxvar + 2;
+		//maxvar+3 and maxvar+4 is reserved for invariant id;
+		invariant_id_ = aig->maxvar + 3;
 		
+		max_id_ = aig->maxvar+4;
 		collect_trues (aig);
 		
 		set_constraints (aig);
@@ -379,7 +381,7 @@ namespace car{
 	}
 	
 	//propagate the model based on \@ assump, and the results are stored in \@ res
-	bool Model::propagate (const std::vector<int>& assump, std::vector<int>& res) {
+	void Model::propagate (const std::vector<int>& assump, std::vector<int>& res) {
 	    res.resize (max_id_ + 1, 0);
 	    for (int i = 0; i < assump.size (); i ++) {
 	        res[abs(assump[i])] = assump[i]; 
@@ -403,11 +405,20 @@ namespace car{
 	                res[abs(tmp[0])] = tmp[0]; 
 	            }
 	            //propagate to false
-	            else if (tmp.size () == 0) 
-	                return false;
+	            //else if (tmp.size () == 0) 
+	                //return false;
 	        }
 	    }
-	    return true;
+	    
+	    vector<int> s;
+	    for (auto it = res.begin (); it != res.end (); ++it) {
+	        vector<int> ids = previous (*it);
+	        for (auto it2 = ids.begin (); it2 != ids.end (); ++it2)
+	            s.push_back (*it2);
+	    }
+	    std::sort (s.begin (), s.end (), car::comp);
+	    res = s;
+	    //return true;
 	}
 	
 	

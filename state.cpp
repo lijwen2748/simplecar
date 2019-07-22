@@ -18,7 +18,7 @@
 /*
 	Author: Jianwen Li
 	Update Date: September 20, 2017
-	Data structures in CAR
+	State structures in CAR
 */
 
  
@@ -28,12 +28,13 @@
  #include "data_structure.h"
  #include <string.h>
  #include <assert.h>
+ #include "state.h"
  using namespace std;
  
  namespace car
  {
  
-    State::State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last) 
+    State::State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, Model* model, const bool last) 
  	{
  		if (forward)
  		{
@@ -60,6 +61,43 @@
  		else
  		    dep_ = s->dep_ + 1;
 		work_count_ = 0;
+		
+		//if (model != NULL)
+		    //reorder (model, forward);
+ 	}
+ 	
+ 	void State::reorder (Model* m, bool forward) {
+ 	    if (!forward) {
+ 	        reorder_s_ = s_;
+ 	        vector<int> v1, v2, v3;
+ 	        m->propagate (s_, v1);
+ 	        v2 = reorder_s_;
+ 	        v3 = car::vec_intersect (v2, v1);
+ 	        int counter = 1;
+ 	        while (!v3.empty ()) {
+ 	            if (counter >= 1)
+ 	                break;
+ 	            
+ 	            if (v2.size () == v3.size ()) 
+ 	                break;
+ 	            reorder_s_.insert (reorder_s_.begin (), v3.begin (), v3.end ());
+ 	            v1.clear ();
+ 	            v2 = v3;
+ 	            m->propagate (v2, v1);
+ 	            v3 = car::vec_intersect (v2, v1);
+ 	            
+ 	            counter ++;
+ 	        }
+ 	        hash_set<int> used;
+ 	        vector<int> tmp;
+ 	        for (auto it = reorder_s_.begin (); it != reorder_s_.end (); ++it) {
+ 	            if (used.find (*it) == used.end ()) {
+ 	                tmp.push_back (*it);
+ 	                used.insert (*it);
+ 	            }    
+ 	        }
+ 	        reorder_s_ = tmp;
+ 	    }
  	}
  	
  	bool State::imply (const Cube& cu) const

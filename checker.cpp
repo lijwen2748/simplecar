@@ -113,6 +113,10 @@ namespace car
 					cout << "return UNSAT from safe reported" << endl;
 				return false;
 			}
+			
+			if (propagate ())
+			    return false;
+			
 			extend_F_sequence ();
 			frame_level ++;
 			
@@ -141,8 +145,10 @@ namespace car
 		
 		//for forward CAR, the initial states are set of cubes
 		State *s = enumerate_start_state ();
+		
 		while (s != NULL)
 		{
+		    
 		    if (!forward_) //for dot drawing
 			    s->set_initial (true);
 			
@@ -257,17 +263,50 @@ namespace car
 		frame_level += 1;
 		if (frame_level < int (F_.size ()))
 		{
-		   /*
-		    if (s->work_count () >= MAX_TRY) {
-		        s->set_work_level (frame_level);
-		        states_.push_back (s);
-		        return false;
-		    }
-		    s->work_count_inc ();
-		   */
 		    return try_satisfy_by (frame_level, s);
 		}
 		
+		return false;
+	}
+	
+	/////////////////propagation////////////////////////////////////////////////
+	bool Checker::propagate () 
+	{
+		if (verbose_)
+			cout << "start propagate " << endl;
+		for (int i = minimal_update_level_+1; i < F_.size (); i ++){
+			if (propagate (i)){
+				if (verbose_){
+					cout << "return UNSAT from propagate found at frame " << i << endl;
+					print ();
+				}
+				return true;
+			}
+		}
+		if (verbose_)
+			cout << "end propagate " << endl;
+		return false;
+	}
+	
+	bool Checker::propagate (int pos) {
+		Frame &frame = F_[pos];
+		int sz = frame.size ();
+		bool full_propagated = true;
+		for (int i = 0; i < sz; i ++) {
+		    if (frame[i].propagated_) {
+		       // cout << "propagated: " << pos << ": " << i << endl;
+		        continue;
+		    }
+			if (!solve_with (frame[i].c_, pos)) {
+				//push_to_frame (frame[i].c_, pos+1);
+				update_F_sequence (NULL, pos+1);
+		        frame[i].propagated_ = true;
+		    }
+		    else
+		        full_propagated = false;
+		}
+		if (full_propagated)
+		    return true;
 		return false;
 	}
 	
@@ -283,7 +322,7 @@ namespace car
 		solver_ = NULL;
 		start_solver_ = NULL;
 		inv_solver_ = NULL;
-		init_ = new State (model_->init ());
+		init_ = new State (model_->init (), model_);
 		last_ = NULL;
 		forward_ = forward;
 		safe_reported_ = false;
@@ -333,7 +372,9 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
+	    solver_add_invariant (solver_);
 		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
+		solver_add_invariant (start_solver_);
 		assert (F_.empty ());
 		assert (B_.empty ());
 		
@@ -364,7 +405,7 @@ namespace car
 	        if (forward_)
 	            init_->set_inputs (pa.first);
 	        else
-	            last_ = new State (NULL, pa.first, pa.second, forward_, true);
+	            last_ = new State (NULL, pa.first, pa.second, forward_, model_, true);
 	        
 	        return true;
 	    }
@@ -425,7 +466,7 @@ namespace car
 	{
 		Assignment st = start_solver_->get_model ();
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State *res = new State (NULL, pa.first, pa.second, forward_, true);
+		State *res = new State (NULL, pa.first, pa.second, forward_, model_, true);
 		return res;
 	}
 	
@@ -558,7 +599,7 @@ namespace car
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
-		State* res = new State (s, pa.first, pa.second, forward_);
+		State* res = new State (s, pa.first, pa.second, forward_, model_);
 		
 		return res;
 	}
@@ -595,6 +636,13 @@ namespace car
 		}
 		
 		
+		//constraint returns true means cu is an invariant
+		if (forward_ && constraint) {
+		    push_to_invariant (cu);
+		    solvers_add_invariant (cu);
+		    return;
+		}
+		
 		push_to_frame (cu, frame_level);
 		
 	}
@@ -602,6 +650,8 @@ namespace car
 	
 	void Checker::push_to_frame (Cube& cu, const int frame_level)
 	{
+		
+		
 		
 		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
 		
@@ -614,23 +664,17 @@ namespace car
 		for (int i = 0; i < frame.size (); i ++)
 		{   
 		
-			if (!imply (frame[i], cu))
+			if (!imply (frame[i].c_, cu))
 				tmp_frame.push_back (frame[i]);	
 			else {
 			    stats_->count_clause_contain_success ();
 			}
 		} 
 		stats_->count_clause_contain_time_end ();
-		tmp_frame.push_back (cu);
 		
-		if (rotate_) {
-		/*
-		    //check whether cu is from the common part, if not, reset the corresponding cube
-		    Cube& cube = (frame_level < int (cubes_.size ())) ? cubes_[frame_level] : cube_;
-		    if (is_in_common (cu, cube))
-		        cube.clear ();
-		*/
-	    }
+		P_Cube pc (cu);
+		tmp_frame.push_back (pc);
+		
 	    
 		frame = tmp_frame;
 		
@@ -645,7 +689,7 @@ namespace car
 	    for (int i = 0; i < frame_level; i ++){
 	        int j = 0;
 	        for (; j < F_[i].size (); j ++){
-	            if (s->imply (F_[i][j]))
+	            if (s->imply (F_[i][j].c_))
 	                break;
 	        }
 	        if (j >= F_[i].size ())
@@ -661,8 +705,17 @@ namespace car
 	    assert (const_cast<State*>(st)->size () == model_->num_latches ());
 	    
 	    stats_->count_state_contain_time_start ();
+	    //whether in invariant_
+	    for (auto it = invariant_.begin(); it != invariant_.end (); ++it) {
+	        if (forward_ && (*st) == (*init_))
+	            break;
+	        if (st->imply (*it)) {
+	            stats_->count_state_contain_time_end ();
+	            return true;
+	        }
+	    }
 	    for (int i = 0; i < frame.size (); i ++) {
-	        if (st->imply (frame[i])) {
+	        if (st->imply (frame[i].c_)) {
 	            stats_->count_state_contain_time_end ();
 	            return true;
 	        } 
@@ -707,7 +760,7 @@ namespace car
 	    Frame& frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
 	    
 	    for (int i = frame.size ()-1; i >= 0; --i) {
-	        Cube& cu = frame[i];
+	        Cube& cu = frame[i].c_;
 	        int j = 0;
 	        for (; j < cu.size() ; ++ j) {
 	    	    if (st[abs(cu[j])-model_->num_inputs ()-1] != cu[j]) {
@@ -730,7 +783,7 @@ namespace car
 	    if (frame.size () == 0)  
 	    	return;
 	    	
-	    Cube& cu = frame[frame.size()-1];
+	    Cube& cu = frame[frame.size()-1].c_;
 	        
 	    std::vector<int> tmp;
 	    tmp.reserve (cu.size());
@@ -752,7 +805,9 @@ namespace car
 	    if (inter_) 
 	    	get_priority (st, frame_level, prefix);	
 	    
-	    if (rotate_) { 	    
+	    //cout << "before rotation" << endl;
+	    //car::print (st);
+	    if (rotate_) { 	  ///////NOT together with propagation!!//////////  
 	        std::vector<int> tmp_st, tmp;
 	        tmp_st.reserve (st.size());
 	        tmp.reserve (st.size());
@@ -774,9 +829,34 @@ namespace car
 	        st = tmp_st;
 	        cube = st;
 	    }
+	    //cout << "after rotation" << endl;
+	    //car::print (st);
 	    
 	    st.insert (st.begin (), prefix.begin (), prefix.end ());
 	}
+	
+	//add invariant to the solvers
+	void Checker::solver_add_invariant (CARSolver* solver) {
+	    if (forward_) {
+            Cube c;
+		    c.push_back (model_->invariant_id ());
+		    c.push_back (model_->invariant_id ()+1);
+		    solver->add_clause (c);
+		    for (auto it = invariant_.begin (); it != invariant_.end (); ++it) {
+		        c = *it;
+		        c.push_back (model_->invariant_id ());
+		        solver->add_clause_from_cube (c);
+		    }
+		    //add inital state
+		    Cube& init = model_->init ();
+		    for (auto it = init.begin (); it != init.end (); ++it) {
+		        c.clear ();
+		        c.push_back (model_->invariant_id ()+1);
+		        c.push_back (-*it);
+		        solver->add_clause_from_cube (c);
+		    }
+		}
+    }
 	
 		
 	void Checker::print_evidence (ofstream& out) {

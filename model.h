@@ -64,6 +64,7 @@ public:
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}
 	
+	inline int invariant_id () {return invariant_id_;}
 	inline std::vector<int>& ordered_literals () {return ordered_literals_;}
 	
 	//printer
@@ -81,6 +82,8 @@ private:
 	int num_outputs_;
 	
 	int max_id_;  //maximum used id in the model
+	
+	int invariant_id_; //reserved for invariant id
 	
 	int true_;  //id for true
 	int false_;  //id for false
@@ -179,7 +182,7 @@ private:
 	
 	void create_ordered_literals ();
 public:
-	bool propagate (const std::vector<int>& assump, std::vector<int>& res);
+	void propagate (const std::vector<int>& assump, std::vector<int>& res);
 	
 };
 

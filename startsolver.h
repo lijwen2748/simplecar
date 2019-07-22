@@ -49,6 +49,10 @@ namespace car {
         }
         ~StartSolver () {}
         
+        inline void add_assumption_flag () {
+            assumption_push (flag_);
+        }
+        
         inline bool solve_with_assumption ()
         {
         	//if (verbose_)

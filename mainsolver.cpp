@@ -65,8 +65,10 @@ namespace car
 	void MainSolver::set_assumption (const Assignment& a, const int frame_level, const bool forward)
 	{
 		assumption_.clear ();
-		if (frame_level > -1)
-			assumption_push (flag_of (frame_level));		
+		if (!forward) {
+		    if (frame_level > -1)
+			    assumption_push (flag_of (frame_level));
+	    }		
 		for (Assignment::const_iterator it = a.begin (); it != a.end (); it ++)
 		{
 			int id = *it;
@@ -74,6 +76,10 @@ namespace car
 				assumption_push (model_->prime (id));
 			else
 				assumption_push (id);
+		}
+		if (forward) {
+		    if (frame_level > -1)
+			    assumption_push (flag_of (frame_level));
 		}
 			
 	}
@@ -127,7 +133,7 @@ namespace car
 	{
 		for (int i = 0; i < frame.size (); i ++)
 		{
-			add_clause_from_cube (frame[i], frame_level, forward);
+			add_clause_from_cube (frame[i].c_, frame_level, forward);
 		}
 	}
 	

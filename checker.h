@@ -25,6 +25,7 @@
  #define CHECKER_H
  
 #include "data_structure.h"
+#include "state.h"
 #include "invsolver.h"
 #include "startsolver.h"
 #include "mainsolver.h"
@@ -40,6 +41,10 @@
 
 namespace car 
 {
+    
+ 	typedef std::vector<Frame> Fsequence;
+ 	typedef std::vector<std::vector<State*> > Bsequence;
+ 	
     class Comparator {
     public:
         //Comparator (std::vector<int>& counter): counter_ (counter) {}
@@ -71,6 +76,14 @@ namespace car
 		    }
 		    std::cout << std::endl;
 		}
+		
+		inline void print_frames () {
+		    for (int i = 0; i < F_.size (); ++ i) {
+		        std::cout << "Frame " << i << ":" << std::endl;
+		        print_frame (F_[i]);
+		    }
+		}
+		inline int invariant_size () {return invariant_.size();}
 	protected:
 		//flags 
 		bool forward_;
@@ -148,11 +161,41 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
+		
+		///propagation
+		bool propagate ();
+		bool propagate (int);
+		
+		std::vector<Cube> invariant_;
 				
 		
 		//inline functions
+		inline bool is_invariant (const Cube& c, const int frame_level) {
+		    //c is sorted
+		    auto it = c.rbegin ();
+		    if (*it > model_->max_id ())
+		        return false;
+		    return true;
+		}
+		
+		inline void push_to_invariant (Cube& c) {
+		    invariant_.push_back (c);
+		}
+		
+				
+		void solver_add_invariant (CARSolver*);
+		
+		inline void solvers_add_invariant (Cube c) {
+		    c.push_back (model_->invariant_id ());
+		    solver_->CARSolver::add_clause_from_cube (c);
+		    start_solver_->add_clause_from_cube (c);
+		    if (inv_solver_ != NULL)
+		        inv_solver_->add_clause_from_cube (c);     
+		}
+		
 		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, verbose_);
+			solver_add_invariant (inv_solver_);
 		}
 		inline void delete_inv_solver (){
 			delete inv_solver_;
@@ -183,8 +226,10 @@ namespace car
 	        delete start_solver_;
 	        start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
 	        for (int i = 0; i < frame_.size (); i ++) {
-	            start_solver_->add_clause_with_flag (frame_[i]);
+	            start_solver_->add_clause_with_flag (frame_[i].c_);
 	        }
+	        start_solver_->add_assumption_flag ();
+            solver_add_invariant (start_solver_);
 	    }
 	    
 	    inline bool start_solver_solve_with_assumption (){
@@ -213,6 +258,7 @@ namespace car
 	        for (int i = 0; i < F_.size (); i ++) {
 	            solver_->add_new_frame (F_[i], i, forward_);
 	        }
+            solver_add_invariant (solver_);
 	    }
 	    
 	    inline void reorder (Assignment& st) {
@@ -223,16 +269,6 @@ namespace car
 	    		if (-ordered_literals[i] == st[index])
 	    			tmp.push_back (st[index]);
 	    	}
-	    	/*
-	    	if (st.size () != tmp.size ()) {
-	    		car::print (ordered_literals);
-	    		std::cout << "state size " << st.size () << std::endl;
-	    		car::print (st);
-	    		std::cout << "tmp state size " << tmp.size () << std::endl;
-	    		car::print (tmp);
-	    		exit (0);
-	    	}
-	    	*/
 	    	st = tmp;
 	    }
 	    
@@ -241,7 +277,7 @@ namespace car
 	            reconstruct_solver ();
 	        Assignment st2 = st;
 	        //reorder (st2);
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
+	        //add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
@@ -264,21 +300,11 @@ namespace car
 	            reconstruct_solver ();
 	        Assignment st2 = st;
 	        //reorder (st2);
-	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
+	        //add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
 	        solver_->set_assumption (st2, frame_level, forward);
 	        stats_->count_main_solver_SAT_time_start ();
 		    bool res = solver_->solve_with_assumption ();
 		    stats_->count_main_solver_SAT_time_end ();
-		    if (!res) {
-		    	Assignment st3; 
-		    	st3.reserve (model_->num_latches());
-		    	for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)
-		    		st3.push_back (st2[i]);
-		        if (frame_level+1 < cubes_.size ()) 
-		            cubes_[frame_level+1] = st3;
-		        else
-		            cube_ = st3;
-		    }
 		    return res;
 	    }
 	    
@@ -287,13 +313,13 @@ namespace car
 	        cube_.clear ();
 		comm_.clear ();
 	        for (int i = 0; i < frame_.size (); i ++)
-	        	start_solver_->add_clause_with_flag (frame_[i]);
+	        	start_solver_->add_clause_with_flag (frame_[i].c_);
 	    }
 	    
 	    
 	    inline void print_frame (const Frame& f){
 	        for (int i = 0; i < f.size (); i ++)
-	            car::print (f[i]);
+	            car::print (f[i].c_);
 	    }
 	    
 	    inline void print_F (){

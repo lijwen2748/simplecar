@@ -89,31 +89,7 @@ bool imply ( std::vector<int>& v1,  std::vector<int>& v2)
             ++ first2;
         ++ first1;
     }
-    return true;
-    
-  
-/*
-    if (v1.size () < v2.size ())
-        return false;
-    int j = 0; 
-    for (int i = 0; i < v2.size (); i ++)
-    {
-        if (j >= v1.size ())
-            return false;
-        while (abs(v1[j]) < abs(v2[i]))
-        {
-            j++;
-            if (j >= v1.size ())
-                return false;
-        }
-        
-        if (v1[j] == v2[i])
-            j++;
-        else
-            return false;
-    }
-    return true;
-  */  
+    return true; 
 }
 
 std::vector<int> vec_intersect (const std::vector<int>& v1, const std::vector<int>& v2)
