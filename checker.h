@@ -281,7 +281,7 @@ namespace car
 	        stats_->count_main_solver_SAT_time_start ();
 	        bool res = solver_->solve_with_assumption (st2, p);
 	        stats_->count_main_solver_SAT_time_end ();
-	        if (!res) {
+	        if (!res) {//initialize cube_ when the first SAT call returns UNSAT ***Necessary???****
 	        	Assignment st3; 
 		    	st3.reserve (model_->num_latches());
 		    	for (int i = st2.size ()-model_->num_latches(); i < st2.size (); ++ i)

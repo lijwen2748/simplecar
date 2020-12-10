@@ -1,0 +1,42 @@
+
+OBJ = main.o aiger.o checker.o carsolver.o data_structure.o model.o utility.o mainsolver.o
+GPP = gcc
+GCC = gcc
+
+CFLAG = -c -I./minisat/
+
+simplecar: $(OBJ)
+	$(GPP) -o simplecar $(OBJ) 
+	
+main.o: main.cpp
+	$(GPP) $(CFLAG) main.cpp
+	
+aiger.o: aiger.c
+	$(GCC) $(CFLAG) aiger.c
+	
+checker.o: checker.cpp
+	$(GPP) $(CFLAG) checker.cpp
+	
+carsolver.o: carsolver.cpp
+	$(GPP) $(CFLAG) carsolver.cpp
+	
+data_structure.o: data_structure.cp
+p
+	$(GPP) $(CFLAG) data_structure.cpp
+	
+model.o: model.cpp
+	$(GPP) $(CFLAG) model.cpp
+	
+utility.o: utility.cpp
+	$(GPP) $(CFLAG) utility.cpp
+	
+mainsolver.o: mainsolver.cpp
+	$(GPP) $(CFLAG) mainsolver.cpp
+	
+.PHONY: simplecar
+
+clean: 
+	rm simplecar;
+	rm *.o
+	
+	

@@ -807,20 +807,55 @@ namespace car
 	    
 	    //cout << "before rotation" << endl;
 	    //car::print (st);
-	    if (rotate_) { 	  ///////NOT together with propagation!!//////////  
-	        std::vector<int> tmp_st, tmp;
-	        tmp_st.reserve (st.size());
-	        tmp.reserve (st.size());
+	    if (rotate_) { 	  ///////DO NOT WORK together with propagation!!//////////  
 	        Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
 	        if (cube.empty ()) {
 	            cube = st;
 	            return;
 	        }
+	        
+	        std::vector<int> tmp_st, tmp;
+	        tmp_st.reserve (st.size());
+	        tmp.reserve (st.size());
+	        bool flag = false;
+	        for (int i = 0; i < st.size (); ++ i) {
+	        	if (st[i] == cube[i])
+	        		tmp_st.push_back (st[i]);
+	        	else {
+	        		tmp.push_back (st[i]);
+	        		if (cube[i] != 0) {
+	        			flag = true;
+	        			cube[i] = 0; // 0 means undefined, only those non-0 values matter
+	        		}
+	        	}
+	        }
+	        
+	        if (!flag) {//cube can not shrink
+	        	cube = st;
+	        	return;
+	        }
+	    
+	        for (int i = 0; i < tmp.size (); ++ i)
+	            tmp_st.push_back (tmp[i]);
+	        
+	        st = tmp_st;
+	    /*
+	        Cube& cube = (frame_level+1 < cubes_.size ()) ? cubes_[frame_level+1] : cube_;
+	        if (cube.empty ()) {
+	            cube = st;
+	            return;
+	        }
+	        
+	        std::vector<int> tmp_st, tmp;
+	        tmp_st.reserve (st.size());
+	        tmp.reserve (st.size());
 	        for (int i = 0; i < cube.size (); ++ i) {
-	            if (st[abs(cube[i])-model_->num_inputs ()-1] == cube[i]) 
+	        	int id = abs(cube[i])-model_->num_inputs ()-1;
+	            if (st[id] == cube[i]) 
 	    		    tmp_st.push_back (cube[i]);
-	    	    else
+	    	    else {
 	    	        tmp.push_back (-cube[i]);
+	    	    }
 	        }
 	    
 	        for (int i = 0; i < tmp.size (); ++ i)
@@ -828,6 +863,7 @@ namespace car
 	        
 	        st = tmp_st;
 	        cube = st;
+	        */
 	    }
 	    //cout << "after rotation" << endl;
 	    //car::print (st);
