@@ -132,7 +132,7 @@ namespace car
 	
 	bool Checker::try_satisfy (const int frame_level)
 	{
-				
+		
 		int res = do_search (frame_level);
 		if (res == 1)
 		    return true;
@@ -143,6 +143,7 @@ namespace car
 		State *s = enumerate_start_state ();
 		while (s != NULL)
 		{
+		
 		    if (!forward_) //for dot drawing
 			    s->set_initial (true);
 			
@@ -585,7 +586,16 @@ namespace car
 	{	
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-			
+		
+		//foward cu MUST rule out those not in \@s
+		Cube tmp;
+		Cube &st = s->s();
+		for(auto it = cu.begin(); it != cu.end(); ++it){
+			int latch_start = model_->num_inputs()+1;
+			if (st[abs(*it)-latch_start] == *it)
+				tmp.push_back (*it);
+		}
+		cu = tmp;
 		//pay attention to the size of cu!
 		if (cu.empty ())
 		{

@@ -116,7 +116,7 @@ void check_aiger (int argc, char** argv)
    bool gv = false; //to print dot format for graphviz 
    
    bool begin = false;
-   bool end = false;
+   bool end = true;
    bool inter = true;
    bool rotate = false;
    
