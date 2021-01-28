@@ -59,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, int propagate = -1, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -77,6 +77,7 @@ namespace car
 		bool partial_state_;
 		bool minimal_uc_;
 		bool evidence_;
+		int propagate_;
 		bool verbose_;
 		
 		//new flags for reorder and state enumeration
@@ -135,7 +136,7 @@ namespace car
 		void update_frame_by_relative (const State* s, const int frame_level);
 		void update_B_sequence (State* s);
 		int get_new_level (const State *s, const int frame_level);
-		void push_to_frame (Cube& cu, const int frame_level);
+		void push_to_frame (Cube& cu, const int frame_level, bool solver = true);
 		bool tried_before (const State* s, const int frame_level);
 		
 		
@@ -147,6 +148,12 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
+		
+		/**********propagation************/
+		bool propagate ();
+		bool propagate (int n);
+		bool propagate (Cube cu, int n, Frame& frame);
+		bool try_block (State* s, int n, Frame& frame);
 				
 		
 		//inline functions

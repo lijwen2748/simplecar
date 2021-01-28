@@ -64,7 +64,7 @@ void  signal_handler (int sig_num)
 
 void print_usage () 
 {
-  printf ("Usage: simplecar <-f|-b> [-e|-v|-h] <-begin|-end> <-interation|-rotation|-interation -rotation> <aiger file> <output directory>\n");
+  printf ("Usage: simplecar <-f|-b> [-e|-p n|-v|-h] <-begin|-end> <-interation|-rotation|-interation -rotation> <aiger file> <output directory>\n");
   printf ("       -f              forward checking (Default = backward checking)\n");
   printf ("       -b              backward checking \n");
   //printf ("       -p          enable propagation (Default = off)\n");
@@ -74,6 +74,7 @@ void print_usage ()
   printf ("       -interaion      enable intersection heuristic\n");
   printf ("       -rotation       enable rotation heurisitc\n");
   printf ("       -e              print witness (Default = off)\n");
+  printf ("       -p n            enable propagation (Default = off), where n =0, 1, 2\n");
   printf ("       -v              print verbose information (Default = off)\n");
   printf ("       -h              print help information\n");
   
@@ -112,6 +113,7 @@ void check_aiger (int argc, char** argv)
    bool forward = false;
    bool verbose = false;
    bool evidence = false;
+   int propagate = -1;
    bool minimal_uc = false;
    bool gv = false; //to print dot format for graphviz 
    
@@ -134,6 +136,15 @@ void check_aiger (int argc, char** argv)
    			verbose = true;
    		else if (strcmp (argv[i], "-e") == 0)
    			evidence = true;
+   		else if (strcmp (argv[i], "-p") == 0){
+   			if (strcmp (argv[i+1], "0") == 0)
+   				propagate = 0;
+   			else if (strcmp (argv[i+1], "1") == 0)
+   				propagate = 1;
+   			else
+   				propagate = 2;
+   			++i;
+   		}
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {
@@ -225,7 +236,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, begin, end, inter, rotate, verbose, minimal_uc);
+   ch = new Checker (model, stats, dot_file, forward, evidence, propagate, begin, end, inter, rotate, verbose, minimal_uc);
 
    aiger_reset(aig);
    

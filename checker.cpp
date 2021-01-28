@@ -114,6 +114,12 @@ namespace car
 				return false;
 			}
 			extend_F_sequence ();
+			
+			if (propagate_ >=0){
+				if (propagate ())
+					return false;
+			}
+			
 			frame_level ++;
 			
 			if (invariant_found (frame_level+1)){
@@ -272,10 +278,92 @@ namespace car
 		return false;
 	}
 	
+	/*************propagation****************/
+	bool Checker::propagate (){
+		for (int i = minimal_update_level_+1; i < F_.size()-1; ++i)
+			if (propagate (i))
+				return true;
+		return false;
+	}
+	
+	bool Checker::propagate (int n){
+		assert (n >= 0 && n < F_.size()-1);
+		Frame frame = F_[n];
+		bool flag = true;
+		for (int i = 0; i < frame.size (); ++i){
+			Cube cu = frame[i];
+	
+		    if (propagate (cu, n, frame)){
+		    	push_to_frame (cu, n+1);
+		    }
+		    else
+		    	flag = false;
+		}
+		
+		int i = F_[n].size();
+		for (; i < frame.size(); ++i)
+			push_to_frame (frame[i], n, false);
+		
+		if (flag)
+			return true;
+		return false;
+	}
+	
+	bool Checker::propagate (Cube cu, int n, Frame& frame){
+		while (true){
+			solver_->set_assumption (cu, n, forward_);
+			//solver_->print_assumption();
+			//solver_->print_clauses();
+	    	stats_->count_main_solver_SAT_time_start ();
+			bool res = solver_->solve_with_assumption ();
+			stats_->count_main_solver_SAT_time_end ();
+			if (!res)
+				return true;
+			if (propagate_ == 0)
+				return false;
+			else if (propagate_ == 1){
+				State* new_state = get_new_state (NULL);
+			    assert (new_state != NULL);
+			    if (!try_block (new_state, n-1, frame)){
+			    	delete new_state;
+			    	break;
+			    }
+			    delete new_state;
+			}
+		}
+		return false;
+	}
+	
+	bool Checker::try_block (State* s, int n, Frame& frame){
+		bool res = (n == -1) ? immediate_satisfiable (s) : solve_with (const_cast<State*>(s)->s (), n);
+		if (!res){
+			//update_F_sequence (s, n+1);
+			bool constraint = false;
+			Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
+		
+			//foward cu MUST rule out those not in \@s
+			Cube tmp;
+			Cube &st = s->s();
+			for(auto it = cu.begin(); it != cu.end(); ++it){
+				int latch_start = model_->num_inputs()+1;
+				if (st[abs(*it)-latch_start] == *it)
+					tmp.push_back (*it);
+			}
+			cu = tmp;
+			//pay attention to the size of cu!
+			assert (!cu.empty ());
+
+			frame.push_back (cu);
+			solver_->add_clause_from_cube (cu, n+1, forward_);
+			return true;
+		}
+
+		return false;
+	}
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, int propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
 	{
 	    
 		model_ = model;
@@ -290,6 +378,7 @@ namespace car
 		safe_reported_ = false;
 		minimal_uc_ = minimal_uc;
 		evidence_ = evidence;
+		propagate_ = propagate;
 		verbose_ = verbose;
 		minimal_update_level_ = F_.size ()-1;
 		solver_call_counter_ = 0;
@@ -609,7 +698,7 @@ namespace car
 	}
 
 	
-	void Checker::push_to_frame (Cube& cu, const int frame_level)
+	void Checker::push_to_frame (Cube& cu, const int frame_level, bool solver)
 	{
 		
 		Frame& frame = (frame_level < int (F_.size ())) ? F_[frame_level] : frame_;
@@ -642,10 +731,12 @@ namespace car
 		*/
 		frame = tmp_frame;
 		
-		if (frame_level < int (F_.size ()))
-			solver_->add_clause_from_cube (cu, frame_level, forward_);
-		else if (frame_level == int (F_.size ()))
-			start_solver_->add_clause_with_flag (cu);
+		if(solver){
+			if (frame_level < int (F_.size ()))
+				solver_->add_clause_from_cube (cu, frame_level, forward_);
+			else if (frame_level == int (F_.size ()))
+				start_solver_->add_clause_with_flag (cu);
+		}
 	}
 	
 	
