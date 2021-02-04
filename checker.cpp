@@ -280,7 +280,7 @@ namespace car
 	
 	/*************propagation****************/
 	bool Checker::propagate (){
-		for (int i = minimal_update_level_+1; i < F_.size()-1; ++i)
+		for (int i = (minimal_update_level_+1); i < F_.size()-1; ++i)
 			if (propagate (i))
 				return true;
 		return false;
