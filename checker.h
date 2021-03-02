@@ -59,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -97,6 +97,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
+		MainSolver *lift_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
 		Fsequence F_;
@@ -147,6 +148,12 @@ namespace car
 		void car_finalization ();
 		void destroy_states ();
 		bool car_check ();
+		
+		void get_partial (Assignment& st, const State* s=NULL);
+		
+		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block, Cube& tmp_flags);
+		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
+		Cube get_uc (Cube& c);
 				
 		
 		//inline functions
@@ -207,7 +214,6 @@ namespace car
 	    
 	    inline void reconstruct_solver () {
 	        delete solver_;
-	        MainSolver::clear_frame_flags ();
 	        solver_ = new MainSolver (model_, stats_, verbose_);
 	        for (int i = 0; i < F_.size (); i ++) {
 	            solver_->add_new_frame (F_[i], i, forward_);

@@ -140,6 +140,16 @@ std::vector<int> vec_intersect (const std::vector<int>& v1, const std::vector<in
 
 }
 
+bool is_in (const int id, const std::vector<int>& v, const int begin, const int end){
+	//v is in order
+	if (begin > end)
+		return false;
+	int pos = (begin+end)/2;
+	if (v[pos] == id)
+		return true;
+	return (is_in (id, v, begin, pos-1) || is_in (id, v, pos+1, end));
+}
+
 
 
 }

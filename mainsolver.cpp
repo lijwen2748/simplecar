@@ -30,16 +30,15 @@ using namespace std;
 
 namespace car
 {
-	int MainSolver::max_flag_ = -1;
-	vector<int> MainSolver::frame_flags_;
+	//int MainSolver::max_flag_ = -1;
+	//vector<int> MainSolver::frame_flags_;
 	
 	MainSolver::MainSolver (Model* m, Statistics* stats, const bool verbose) 
 	{
 	    verbose_ = verbose;
 	    stats_ = stats;
 		model_ = m;
-		if (max_flag_ == -1)
-			max_flag_ = m->max_id() + 1;
+		max_flag_ = m->max_id() + 1;
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
@@ -144,6 +143,38 @@ namespace car
 				cl.push_back (-cu[i]);
 		}
 		add_clause (cl);
+	}
+	
+	bool MainSolver::solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block, Cube& tmp_flags){
+		//add temporary clause
+		int flag = max_flag_++;
+		vector<int> cl;
+		cl.push_back (-flag);
+		for (int i = 0; i < tmp_block.size (); i ++)
+		{
+			if (!forward)
+				cl.push_back (-model_->prime (tmp_block[i]));
+			else
+				cl.push_back (-tmp_block[i]);
+		}
+		add_clause (cl);
+		
+		//add assumptions
+		tmp_flags.push_back (flag);
+		assumption_.clear ();
+		
+		for (int i = 0; i < s.size(); ++i){
+			if (forward)
+				assumption_push (model_->prime (s[i]));
+			else
+				assumption_push (s[i]);
+		}
+		
+		for (int i = 0; i < tmp_flags.size(); ++i)
+			assumption_push (tmp_flags[i]);
+			
+		return solve_with_assumption ();
+		
 	}
 	
 	void MainSolver::shrink_model (Assignment& model, const bool forward, const bool partial)

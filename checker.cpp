@@ -275,13 +275,14 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
 	{
 	    
 		model_ = model;
 		stats_ = &stats;
 		dot_ = dot;
 		solver_ = NULL;
+		lift_ = NULL;
 		start_solver_ = NULL;
 		inv_solver_ = NULL;
 		init_ = new State (model_->init ());
@@ -294,6 +295,7 @@ namespace car
 		minimal_update_level_ = F_.size ()-1;
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
+		partial_state_ = partial;
 		
 		begin_ = begin;
 		end_ = end;
@@ -334,6 +336,8 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
+	    if (forward_ & partial_state_)
+	    	lift_ = new MainSolver (model_, stats_, verbose_);
 		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
 		assert (F_.empty ());
 		assert (B_.empty ());
@@ -347,6 +351,10 @@ namespace car
 	    if (solver_ != NULL) {
 	        delete solver_;
 	        solver_ = NULL;
+	    }
+	    if (lift_ != NULL) {
+	        delete lift_;
+	        lift_ = NULL;
 	    }
 	    if (start_solver_ != NULL) {
 	        delete start_solver_;
@@ -424,6 +432,9 @@ namespace car
 	State* Checker::get_new_start_state ()
 	{
 		Assignment st = start_solver_->get_model ();
+		st.resize (model_->num_inputs() + model_->num_latches());
+		if (partial_state_)
+			get_partial (st);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State *res = new State (NULL, pa.first, pa.second, forward_, true);
 		return res;
@@ -431,15 +442,25 @@ namespace car
 	
 	std::pair<Assignment, Assignment> Checker::state_pair (const Assignment& st)
 	{
-	    assert (st.size () >= model_->num_inputs () + model_->num_latches ());
-	    Assignment inputs, latches;
-	    for (int i = 0; i < model_->num_inputs (); i ++)
-	        inputs.push_back (st[i]);
-	    for (int i = model_->num_inputs (); i < st.size (); i ++)
-	    {
-	        if (abs (st[i]) > model_->num_inputs () + model_->num_latches ())
-	            break;
-	        latches.push_back (st[i]);
+		Assignment inputs, latches;
+		if (!partial_state_){
+	    	assert (st.size () >= model_->num_inputs () + model_->num_latches ());
+	    	for (int i = 0; i < model_->num_inputs (); i ++)
+	        	inputs.push_back (st[i]);
+	    	for (int i = model_->num_inputs (); i < st.size (); i ++)
+	    	{
+	        	if (abs (st[i]) > model_->num_inputs () + model_->num_latches ())
+	            	break;
+	        	latches.push_back (st[i]);
+	    	}
+	    }
+	    else{
+	    	for (auto it = st.begin(); it != st.end (); ++it){
+	    		if (abs(*it) <= model_->num_inputs ())
+	    			inputs.push_back (*it);
+	    		else if (abs(*it) <= model_->num_inputs () + model_->num_latches ())
+	    			latches.push_back (*it);
+	    	}
 	    }
 	    return std::pair<Assignment, Assignment> (inputs, latches);
 	}
@@ -554,13 +575,62 @@ namespace car
 		return res;
 	}
 	
+	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block, Cube& tmp_flags){
+		assert (frame_level != -1);
+		
+		return solver_->solve_with_assumption_for_temporary (s, frame_level, forward_, tmp_block, tmp_flags);
+				
+	}
+	
 	State* Checker::get_new_state (const State* s)
 	{
 		Assignment st = solver_->get_state (forward_, partial_state_);
+		//st includes both input and latch parts
+		if (partial_state_)
+			get_partial (st, s);
 		std::pair<Assignment, Assignment> pa = state_pair (st);
 		State* res = new State (s, pa.first, pa.second, forward_);
 		
 		return res;
+	}
+	
+	void Checker::get_partial (Assignment& st, const State* s){
+		assert (forward_);
+		Cube assumption = st;
+		if (s != NULL){
+			Cube& cube = s->s();
+			Clause cl;
+			for (auto it = cube.begin(); it != cube.end(); ++it)
+				cl.push_back (-model_->prime (*it));
+			int flag = lift_->new_flag ();
+			cl.push_back (flag);
+			lift_->add_clause (cl);
+		
+			assumption.push_back (-flag);
+			bool ret = lift_->solve_with_assumption (assumption);
+		
+			assert (!ret);
+			bool constraint = false;
+			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			assert (!st.empty());
+		
+			lift_->add_clause (-flag);	
+		}
+		else{
+			assumption.push_back (-bad_);
+			bool ret = lift_->solve_with_assumption (assumption);
+			assert (!ret);
+			bool constraint = false;
+			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			//remove -bad_
+			for (auto it = st.begin(); it != st.end(); ++it){
+				if (*it == -bad_){
+					st.erase (it);
+					break;
+				}
+			}
+			assert (!st.empty());
+		}
 	}
 	
 	
@@ -588,24 +658,93 @@ namespace car
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
 		//foward cu MUST rule out those not in \@s
+		if (forward_){
+			Cube tmp;
+			Cube &st = s->s();
+			if (!partial_state_){
+				for(auto it = cu.begin(); it != cu.end(); ++it){
+					int latch_start = model_->num_inputs()+1;
+					if (st[abs(*it)-latch_start] == *it)
+						tmp.push_back (*it);
+				}
+			}
+			else{
+				hash_set<int> tmp_set;
+				for (auto it = st.begin (); it != st.end(); ++it)
+					tmp_set.insert (*it);
+				for (auto it = cu.begin(); it != cu.end(); ++it){
+					if (tmp_set.find (*it) != tmp_set.end())
+						tmp.push_back (*it);
+				}
+			}
+			cu = tmp;
+		}
+		
+		//Cube next_cu;
+		//cu = recursive_block (s, frame_level, cu, next_cu);
+		
+		//pay attention to the size of cu!
+		if (safe_reported ())
+		{
+			return;
+		}
+		
+		push_to_frame (cu, frame_level);
+		
+	}
+	
+	Cube Checker::recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu){
+		
+		Cube common = s->s(), common_cu = cu;
+		Cube tmp_flags;
+		while (true){
+			Cube common_cp = common;
+			common_cp.insert (common_cp.begin (), cu.begin(), cu.end ());
+			
+			bool res = solve_for_recursive (common_cp, frame_level, cu, tmp_flags);
+			if (!res){
+				next_cu = get_uc(common);
+				return cu;
+			}
+			State* new_state = get_new_state (s);
+			assert (new_state != NULL);
+			common = car::cube_intersect (common, new_state->s());
+			
+			common_cu = car::cube_intersect (common, common_cu);
+			
+			common_cp = common;
+			common_cp.insert (common_cp.begin (), common_cu.begin(), common_cu.end ());
+			
+			if (solve_with (common_cp, frame_level-1))
+				return cu;
+			
+			cu = get_uc (common); 
+			
+			
+		}
+		
+	}
+	
+	Cube Checker::get_uc (Cube &c) {
+		bool constraint = false;
+		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
+		    
+		//foward cu MUST rule out those not in \@s
 		Cube tmp;
-		Cube &st = s->s();
+		//Cube &st = s->s();
 		for(auto it = cu.begin(); it != cu.end(); ++it){
-			int latch_start = model_->num_inputs()+1;
-			if (st[abs(*it)-latch_start] == *it)
+			if (car::is_in (*it, c, 0, c.size()-1))
 				tmp.push_back (*it);
 		}
 		cu = tmp;
+			
 		//pay attention to the size of cu!
 		if (cu.empty ())
 		{
 			report_safe ();
-			return;
+			//return cu;
 		}
-		
-		
-		push_to_frame (cu, frame_level);
-		
+		return cu;
 	}
 
 	
@@ -653,7 +792,8 @@ namespace car
 	    for (int i = 0; i < frame_level; i ++){
 	        int j = 0;
 	        for (; j < F_[i].size (); j ++){
-	            if (s->imply (F_[i][j]))
+	        	bool res = partial_state_ ? car::imply (s->s(), F_[i][j]) : s->imply (F_[i][j]);
+	            if (res)
 	                break;
 	        }
 	        if (j >= F_[i].size ())
@@ -665,6 +805,7 @@ namespace car
 	bool Checker::tried_before (const State* st, const int frame_level) {
 	    assert (frame_level >= 0);
 	    Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
+	    if (!partial_state_){
 	    //assume that st is a full state
 	    assert (const_cast<State*>(st)->size () == model_->num_latches ());
 	    
@@ -676,6 +817,18 @@ namespace car
 	        } 
 	    }
 	    stats_->count_state_contain_time_end ();
+	    }
+	    else{
+	    	stats_->count_state_contain_time_start ();
+	    	for (int i = 0; i < frame.size (); i ++) {
+	        	if (car::imply (st->s(), frame[i])) {
+	            	stats_->count_state_contain_time_end ();
+	            	return true;
+	        	} 
+	    	}
+	    	stats_->count_state_contain_time_end ();
+	    }
+	   
 	    
 	    return false;
 	}

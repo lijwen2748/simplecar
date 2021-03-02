@@ -43,11 +43,24 @@ class MainSolver : public CARSolver
 		//public funcitons
 		void set_assumption (const Assignment&, const int frame_level, const bool forward);
 		void set_assumption (const Assignment&, const int);
+		void set_assumption (const Assignment& st){
+			assumption_.clear ();
+			for (auto it = st.begin(); it != st.end(); ++it)
+				assumption_push (*it);
+		}
 		
 		
 		inline bool solve_with_assumption (const Assignment& st, const int p)
 		{
 		    set_assumption (st, p);
+		    if (verbose_)
+		    	std::cout << "MainSolver::";
+		    return solve_assumption ();
+		}
+		
+		inline bool solve_with_assumption (const Assignment& st)
+		{
+		    set_assumption (st);
 		    if (verbose_)
 		    	std::cout << "MainSolver::";
 		    return solve_assumption ();
@@ -70,17 +83,23 @@ class MainSolver : public CARSolver
 		//overload
 		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
 		
+		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block, Cube& tmp_flags);
+		
 		inline void update_constraint (Cube& cu)
 		{
 		    CARSolver::add_clause_from_cube (cu);
 		}
 		
-		inline static void clear_frame_flags () {frame_flags_.clear ();}
+		inline void clear_frame_flags () {frame_flags_.clear ();}
+		
+		inline int new_flag (){
+			return max_flag_++;
+		}
 		
 	private:
 		//members
-		static int max_flag_;
-		static std::vector<int> frame_flags_;
+		int max_flag_;
+		std::vector<int> frame_flags_;
 		
 		Model* model_;
 		
@@ -89,6 +108,8 @@ class MainSolver : public CARSolver
 		//bool verbose_;
 		
 		//functions
+		
+		
 		
 		inline int flag_of (const unsigned frame_level) 
 		{

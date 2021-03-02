@@ -281,8 +281,11 @@ namespace car{
 	int Model::prime (const int id)
 	{
 		nextMap::iterator it = next_map_.find (abs (id));
-		if (it == next_map_.end ())
-		    return 0; //not found
+		if (it == next_map_.end ()){
+		    //return 0; //not found
+		    cout << "cannot find prime for " << id << endl;
+		    exit (0);
+		}
 		return (id > 0 ? it->second : -(it->second));
 	}
 	
