@@ -173,6 +173,19 @@ namespace car
 	*       -1: else
 	*/
 	int Checker::do_search (const int frame_level) {	
+		//erase dead states
+		for (int i = B_.size()-1; i >= 0; --i){
+			for (int j = 0; j < B_[i].size(); ++j){
+				if (B_[i][j]->is_dead()){
+					State* s = B_[i][j];
+					B_[i].erase (B_[i].begin()+j);
+					delete s;
+					j --;
+				}
+			}
+		}
+		//end of erase
+		
 		if (begin_) {
 			vector<State*> states;
 			for (int i = 0; i < B_.size (); ++ i) {
@@ -296,6 +309,7 @@ namespace car
 		solver_call_counter_ = 0;
 		start_solver_call_counter_ = 0; 
 		partial_state_ = partial;
+		dead_flag_ = false;
 		
 		begin_ = begin;
 		end_ = end;
@@ -657,6 +671,13 @@ namespace car
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
+		Cube dead_uc;
+		if (is_dead (s, dead_uc)){
+			//cout << "dead!" << endl;
+			add_dead_to_solvers (dead_uc);
+			return;
+		}
+		
 		//foward cu MUST rule out those not in \@s
 		if (forward_){
 			Cube tmp;
@@ -692,6 +713,93 @@ namespace car
 		push_to_frame (cu, frame_level);
 		
 	}
+	
+	bool Checker::is_dead (const State* s, Cube& dead_uc){
+		Cube assumption;
+		for (auto it = s->s().begin(); it != s->s().end(); ++it)
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+			
+		bool res = lift_->solve_with_assumption (assumption);
+		if (!res){
+			bool constraint = false;
+			dead_uc = lift_->get_conflict (forward_, minimal_uc_, constraint);
+			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
+			if (forward_){
+				Cube tmp;
+				Cube &st = s->s();
+				if (!partial_state_){
+					for(auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
+						int latch_start = model_->num_inputs()+1;
+						if (st[abs(*it)-latch_start] == *it)
+							tmp.push_back (*it);
+					}
+				}
+				else{
+					hash_set<int> tmp_set;
+					for (auto it = st.begin (); it != st.end(); ++it)
+						tmp_set.insert (*it);
+					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
+						if (tmp_set.find (*it) != tmp_set.end())
+							tmp.push_back (*it);
+					}
+				}
+				dead_uc = tmp;
+			}
+			assert (!dead_uc.empty());
+		}
+		return !res;
+	}
+	
+	void Checker::add_dead_to_solvers (Cube& dead_uc){
+		std::vector<Cube> tmp_deads;
+		for (auto it = deads_.begin (); it != deads_.end (); ++it){
+			if (!imply (*it, dead_uc))
+				tmp_deads.push_back (*it);
+		}
+		deads_ = tmp_deads;
+		deads_.push_back (dead_uc);
+		//car::print (dead_uc);
+		
+		Clause cl;	
+		for (auto it = dead_uc.begin(); it != dead_uc.end (); ++it){
+			cl.push_back (forward_? -(*it) : -model_->prime(*it));
+		}
+		start_solver_->add_clause (cl);
+		
+		if (is_initial (dead_uc)){
+			//create dead clauses : MUST consider the initial state not excluded by dead states!!!
+			std::vector<Clause> cls;
+			if (!dead_flag_){//not consider initial state yet
+				Clause cl2;
+				cl2.push_back (solver_->init_flag());
+				cl2.push_back (solver_->dead_flag());
+				cls.push_back (cl2);
+				//create clauses for I <- solver_->init_flag()
+				for (auto it = init_->s().begin(); it != init_->s().end(); ++it){
+					cl2.clear ();
+					cl2.push_back (-solver_->init_flag());
+					cl2.push_back (*it);
+					cls.push_back (cl2);
+				}
+			
+			}
+			//create clauses for !dead <-solver_->dead_flag()
+			cl.push_back (-solver_->dead_flag());
+			cls.push_back (cl);
+		
+			for (auto it = cls.begin(); it != cls.end(); ++it){
+				solver_->add_clause (*it);
+				lift_->add_clause (*it);
+			}
+		}
+		else{
+			solver_->add_clause (cl);
+			lift_->add_clause (cl);
+		}
+		
+		dead_flag_ = true;
+	}
+	
 	
 	Cube Checker::recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu){
 		
@@ -803,20 +911,30 @@ namespace car
 	}
 	
 	bool Checker::tried_before (const State* st, const int frame_level) {
+		//check whether st is a dead state	
+		for(auto it = deads_.begin(); it != deads_.end(); ++it){
+			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
+			if (res){
+				st->mark_dead ();
+				return true;
+			}
+		}
+		//end of check
+		
 	    assert (frame_level >= 0);
 	    Frame &frame = (frame_level < F_.size ()) ? F_[frame_level] : frame_;
 	    if (!partial_state_){
-	    //assume that st is a full state
-	    assert (const_cast<State*>(st)->size () == model_->num_latches ());
+	    	//assume that st is a full state
+	    	assert (const_cast<State*>(st)->size () == model_->num_latches ());
 	    
-	    stats_->count_state_contain_time_start ();
-	    for (int i = 0; i < frame.size (); i ++) {
-	        if (st->imply (frame[i])) {
-	            stats_->count_state_contain_time_end ();
-	            return true;
-	        } 
-	    }
-	    stats_->count_state_contain_time_end ();
+	    	stats_->count_state_contain_time_start ();
+	    	for (int i = 0; i < frame.size (); i ++) {
+	        	if (st->imply (frame[i])) {
+	            	stats_->count_state_contain_time_end ();
+	            	return true;
+	        	} 
+	    	}
+	    	stats_->count_state_contain_time_end ();
 	    }
 	    else{
 	    	stats_->count_state_contain_time_start ();

@@ -96,10 +96,15 @@ class MainSolver : public CARSolver
 			return max_flag_++;
 		}
 		
+		inline int init_flag () {return init_flag_;}
+		inline int dead_flag () {return dead_flag_;}
+		
 	private:
 		//members
 		int max_flag_;
 		std::vector<int> frame_flags_;
+		
+		int init_flag_, dead_flag_;
 		
 		Model* model_;
 		

@@ -114,6 +114,8 @@ namespace car
 	    std::vector<State*> states_;
 	    std::vector<Cube> comms_;
 	    Cube comm_; 
+	    std::vector<Cube> deads_;
+	    bool dead_flag_;
 		
 		bool safe_reported_;  //true means ready to return SAFE
 		//functions
@@ -150,6 +152,8 @@ namespace car
 		bool car_check ();
 		
 		void get_partial (Assignment& st, const State* s=NULL);
+		void add_dead_to_solvers (Cube& dead_uc);
+		bool is_dead (const State* s, Cube& dead_uc);
 		
 		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block, Cube& tmp_flags);
 		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
@@ -157,6 +161,7 @@ namespace car
 				
 		
 		//inline functions
+		inline bool is_initial (Cube& c){return init_->imply (c);}
 		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, verbose_);
 		}
@@ -191,11 +196,12 @@ namespace car
 	        for (int i = 0; i < frame_.size (); i ++) {
 	            start_solver_->add_clause_with_flag (frame_[i]);
 	        }
+	        
 	    }
 	    
 	    inline bool start_solver_solve_with_assumption (){
-	        if (reconstruct_start_solver_required ())
-	            reconstruct_start_solver ();
+	        //if (reconstruct_start_solver_required ())
+	            //reconstruct_start_solver ();
 	            
 	        stats_->count_start_solver_SAT_time_start ();
 	    	bool res = start_solver_->solve_with_assumption ();
@@ -221,8 +227,8 @@ namespace car
 	    }
 	    
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int p){
-	        if (reconstruct_solver_required ())
-	            reconstruct_solver ();
+	        //if (reconstruct_solver_required ())
+	            //reconstruct_solver ();
 	        Assignment st2 = st;
 	        add_intersection_last_uc_in_frame_level_plus_one (st2, -1);
 	        stats_->count_main_solver_SAT_time_start ();
@@ -243,8 +249,8 @@ namespace car
 	    }
 	    
 	    inline bool solver_solve_with_assumption (const Assignment& st, const int frame_level, bool forward){
-	        if (reconstruct_solver_required ())
-	            reconstruct_solver ();
+	        //if (reconstruct_solver_required ())
+	            //reconstruct_solver ();
 	        Assignment st2 = st;
 	        add_intersection_last_uc_in_frame_level_plus_one (st2, frame_level);
 	        solver_->set_assumption (st2, frame_level, forward);

@@ -38,7 +38,9 @@ namespace car
 	    verbose_ = verbose;
 	    stats_ = stats;
 		model_ = m;
-		max_flag_ = m->max_id() + 1;
+		init_flag_ = m->max_id() + 1;
+		dead_flag_ = m->max_id () + 2;
+		max_flag_ = m->max_id() + 3;
 	    //constraints
 		for (int i = 0; i < m->outputs_start (); i ++)
 			add_clause (m->element (i));
