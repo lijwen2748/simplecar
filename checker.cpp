@@ -673,7 +673,7 @@ namespace car
 		
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
-			//cout << "dead!" << endl;
+			cout << "dead!" << endl;
 			add_dead_to_solvers (dead_uc);
 			return;
 		}
@@ -781,7 +781,7 @@ namespace car
 					cl2.push_back (*it);
 					cls.push_back (cl2);
 				}
-			
+				dead_flag_ = true;
 			}
 			//create clauses for !dead <-solver_->dead_flag()
 			cl.push_back (-solver_->dead_flag());
@@ -796,8 +796,7 @@ namespace car
 			solver_->add_clause (cl);
 			lift_->add_clause (cl);
 		}
-		
-		dead_flag_ = true;
+			
 	}
 	
 	
