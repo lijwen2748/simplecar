@@ -654,7 +654,7 @@ namespace car
 			assert (!st.empty());
 			
 		///?????????????????
-			//lift_->add_clause (-flag);	
+			lift_->add_clause (-flag);	
 			//lift_->print_clauses ();
 		}
 		else{
@@ -704,7 +704,7 @@ namespace car
 		
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
-			cout << "dead!" << endl;
+			//cout << "dead!" << endl;
 			add_dead_to_solvers (dead_uc);
 			return;
 		}
