@@ -335,10 +335,12 @@ namespace car
 	{    
 	    for (int i = 0; i < B_.size (); i ++)
 	    {
+	    	//cout << "B[" << i << "]:" <<endl;
 	        for (int j = 0; j < B_[i].size (); j ++)
 	        {
 	        	if (B_[i][j] != NULL)
 	        	{
+	        		//car::print (B_[i][j]->s());
 	            	delete B_[i][j];
 	            	B_[i][j] = NULL;
 	            }
@@ -350,8 +352,9 @@ namespace car
 	void Checker::car_initialization ()
 	{
 	    solver_ = new MainSolver (model_, stats_, verbose_);
-	    if (forward_ & partial_state_)
+	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);
+	    }
 		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
 		assert (F_.empty ());
 		assert (B_.empty ());
@@ -360,6 +363,14 @@ namespace car
 	
 	void Checker::car_finalization ()
 	{
+	/*
+		for (int i = 0; i < F_.size(); ++i){
+			cout << "Frame " << i << endl;
+			for (int j = 0; j < F_[i].size(); ++j)
+				car::print (F_[i][j]);
+		}
+		*/
+		
 	    F_.clear ();
 	    destroy_states ();
 	    if (solver_ != NULL) {
@@ -430,7 +441,10 @@ namespace car
 	{
 		while (true)
 		{
+			//start_solver_->print_assumption ();
+	    	//start_solver_->print_clauses ();
 	    	bool val = start_solver_solve_with_assumption ();
+
 			if (val)  
 			{
 				State* res = get_new_start_state ();
@@ -446,6 +460,7 @@ namespace car
 	State* Checker::get_new_start_state ()
 	{
 		Assignment st = start_solver_->get_model ();
+		assert (st.size() >= model_->num_inputs() + model_->num_latches());
 		st.resize (model_->num_inputs() + model_->num_latches());
 		if (partial_state_)
 			get_partial (st);
@@ -553,6 +568,13 @@ namespace car
 			return false;
 		}
 		inv_solver_add_constraint_and (frame_level);
+		/*
+		if (F_.size() == 25 && frame_level == 11)
+		{
+			inv_solver_->print_assumption ();
+			inv_solver_->print_clauses ();
+		}
+		*/
 		stats_->count_inv_solver_SAT_time_start ();
 		bool res = !inv_solver_->solve_with_assumption ();
 		stats_->count_inv_solver_SAT_time_end ();
@@ -609,7 +631,8 @@ namespace car
 	}
 	
 	void Checker::get_partial (Assignment& st, const State* s){
-		assert (forward_);
+		if (!forward_) 
+			return;
 		Cube assumption = st;
 		if (s != NULL){
 			Cube& cube = s->s();
@@ -622,20 +645,26 @@ namespace car
 		
 			assumption.push_back (-flag);
 			bool ret = lift_->solve_with_assumption (assumption);
+			//lift_->print_assumption ();
+			//lift_->print_clauses ();
 		
 			assert (!ret);
 			bool constraint = false;
 			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
 			assert (!st.empty());
-		
-			lift_->add_clause (-flag);	
+			
+		///?????????????????
+			//lift_->add_clause (-flag);	
+			//lift_->print_clauses ();
 		}
 		else{
 			assumption.push_back (-bad_);
+			//lift_->print_clauses();
 			bool ret = lift_->solve_with_assumption (assumption);
 			assert (!ret);
 			bool constraint = false;
 			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
+			/*not necessary
 			//remove -bad_
 			for (auto it = st.begin(); it != st.end(); ++it){
 				if (*it == -bad_){
@@ -643,6 +672,7 @@ namespace car
 					break;
 				}
 			}
+			*/
 			assert (!st.empty());
 		}
 	}
@@ -671,12 +701,15 @@ namespace car
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
+		
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
 			cout << "dead!" << endl;
 			add_dead_to_solvers (dead_uc);
 			return;
 		}
+		
+		
 		
 		//foward cu MUST rule out those not in \@s
 		if (forward_){
@@ -913,6 +946,7 @@ namespace car
 		//check whether st is a dead state	
 		for(auto it = deads_.begin(); it != deads_.end(); ++it){
 			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
+			res = res && !is_initial (st->s());
 			if (res){
 				st->mark_dead ();
 				return true;

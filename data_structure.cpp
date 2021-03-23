@@ -103,6 +103,7 @@
 	    }
 	    else
 	    {
+	    
 	    	vector<string> tmp;
 	    	State *start = this;
 	    	//reversve the states order
@@ -119,7 +120,25 @@
 	    		    out << start->latches () << endl;
 	    		out << tmp[i] << endl;
 	    	}
+	    
+	    /*
+	    	vector<State*> tmp;
+	    	tmp.push_back (this);
+	    	State *start = this;
+	    	//reversve the states order
+	    	while (start->pre () != NULL)
+	    	{
+	    		tmp.push_back (start->pre ());
+	    		start = start->pre ();
+	    	}
+	    	//start now is the initial state
+	    	for (int i = tmp.size ()-1; i >= 0; i --)
+	    	{
+	    		car::print (tmp[i]->s());
+	    	}
+	    	*/
 	    }
+	    
  	}
  	
  	string State::inputs () 
