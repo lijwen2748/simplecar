@@ -116,13 +116,17 @@ namespace car
 			extend_F_sequence ();
 			frame_level ++;
 			
+			
 			if (invariant_found (frame_level+1)){
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
 					print ();
+					
 				}
+				
 				return false;
 			}
+			
 			
 		}
 		if (verbose_)
@@ -237,6 +241,14 @@ namespace car
 		    {
 			    State* new_state = get_new_state (s);
 			    assert (new_state != NULL);
+			    /*
+			    cout << "frame " << frame_level << ":" << endl;
+			    cout << "s: " << endl;
+			    car::print (s->s());
+			    cout << "new state:" << endl;
+			    car::print (new_state->s());
+			    */
+			    
 			    
 			    //////generate dot data
 			    if (dot_ != NULL)
@@ -552,6 +564,7 @@ namespace car
 				//delete frames after i, and the left F_ is the invariant
 				while (F_.size () > i+1)
 					F_.pop_back ();
+				//cout << "invariant found at frame " << i << endl;
 				break;
 			}
 		}
@@ -568,13 +581,9 @@ namespace car
 			return false;
 		}
 		inv_solver_add_constraint_and (frame_level);
-		/*
-		if (F_.size() == 25 && frame_level == 11)
-		{
-			inv_solver_->print_assumption ();
-			inv_solver_->print_clauses ();
-		}
-		*/
+
+		//inv_solver_->print_assumption ();
+		//inv_solver_->print_clauses();	
 		stats_->count_inv_solver_SAT_time_start ();
 		bool res = !inv_solver_->solve_with_assumption ();
 		stats_->count_inv_solver_SAT_time_end ();
@@ -651,7 +660,11 @@ namespace car
 			assert (!ret);
 			bool constraint = false;
 			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
-			assert (!st.empty());
+			if (st.empty()){
+			//every state can reach s, thus make st the initial state.
+				st = init_->s();
+				return;
+			}
 			
 		///?????????????????
 			lift_->add_clause (-flag);	
@@ -701,14 +714,14 @@ namespace car
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
-		
+		/*
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
 			//cout << "dead!" << endl;
 			add_dead_to_solvers (dead_uc);
 			return;
 		}
-		
+		*/
 		
 		
 		//foward cu MUST rule out those not in \@s
@@ -1063,6 +1076,8 @@ namespace car
 	        tmp_st.push_back (tmp[i]);
 	    st = tmp_st;
 	    */
+	    if(forward_)
+	    	return;
 	    
 	    std::vector<int> prefix;
 	    if (inter_) 
