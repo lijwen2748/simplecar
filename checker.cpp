@@ -114,16 +114,19 @@ namespace car
 				return false;
 			}
 			extend_F_sequence ();
-			frame_level ++;
 			
+			if (propagate_){
+				if (propagate ())
+					return false;
+			}
+			
+			frame_level ++;
 			
 			if (invariant_found (frame_level+1)){
 				if (verbose_){
 					cout << "return UNSAT from invariant found at frame " << F_.size ()-1 << endl;
-					print ();
-					
+					print ();	
 				}
-				
 				return false;
 			}
 			
@@ -218,15 +221,13 @@ namespace car
 		return -1;
 	}
 	
-	
-	
 	bool Checker::try_satisfy_by (int frame_level, State* s)
 	{
 		if (tried_before (s, frame_level+1))
 			return false;
 		
-		if (frame_level < minimal_update_level_)
-			minimal_update_level_ = frame_level;
+		//if (frame_level < minimal_update_level_)
+			//minimal_update_level_ = frame_level;
 		
 		
 		if (frame_level == -1)
@@ -297,10 +298,50 @@ namespace car
 		return false;
 	}
 	
+	/*************propagation****************/
+	bool Checker::propagate (){
+		int start = forward_ ? (minimal_update_level_ == 0 ? 1 : minimal_update_level_) : minimal_update_level_;
+		for (int i = (start); i < F_.size()-1; ++i)
+			if (propagate (i))
+				return true;
+		return false;
+	}
+	
+	bool Checker::propagate (int n){
+		assert (n >= 0 && n < F_.size()-1);
+		Frame frame = F_[n];
+		bool flag = true;
+		for (int i = 0; i < frame.size (); ++i){
+			Cube& cu = frame[i];
+	
+		    if (propagate (cu, n)){
+		    	push_to_frame (cu, n+1);
+		    }
+		    else
+		    	flag = false;
+		}
+		
+		if (flag)
+			return true;
+		return false;
+	}
+	
+	bool Checker::propagate (Cube& cu, int n){
+		solver_->set_assumption (cu, n, forward_);
+		//solver_->print_assumption();
+		//solver_->print_clauses();
+	    stats_->count_main_solver_SAT_time_start ();
+		bool res = solver_->solve_with_assumption ();
+		stats_->count_main_solver_SAT_time_end ();
+		if (!res)
+			return true;
+		return false;
+	}
+	
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool partial, bool propagate, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
 	{
 	    
 		model_ = model;
@@ -322,6 +363,8 @@ namespace car
 		start_solver_call_counter_ = 0; 
 		partial_state_ = partial;
 		dead_flag_ = false;
+		//set propagate_ to be true by default
+		propagate_ = propagate;
 		
 		begin_ = begin;
 		end_ = end;
@@ -747,6 +790,12 @@ namespace car
 			cu = tmp;
 		}
 		
+		//assert (!cu.empty());
+		
+		if(cu.empty()){
+			report_safe ();
+		}
+		
 		//Cube next_cu;
 		//cu = recursive_block (s, frame_level, cu, next_cu);
 		
@@ -756,7 +805,27 @@ namespace car
 			return;
 		}
 		
+		
+		if (forward_){
+			if (is_initial (cu)){
+				auto it = s->s().begin();
+				while ((*it) < 0) ++it;
+				assert (it != s->s().end());
+				int i = 0;
+				for (; i < cu.size(); ++i)
+					if (abs(cu[i]) > abs(*it))
+						break;
+				cu.insert (cu.begin()+i, *it);
+			}
+		}
+		
+		
 		push_to_frame (cu, frame_level);
+		
+		if (forward_){
+			for (int i = frame_level-1; i >= 1; --i)
+				push_to_frame (cu, i);
+		}
 		
 	}
 	
@@ -765,10 +834,10 @@ namespace car
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
 			
-		bool res = lift_->solve_with_assumption (assumption);
+		bool res = solver_->solve_with_assumption (assumption);
 		if (!res){
 			bool constraint = false;
-			dead_uc = lift_->get_conflict (forward_, minimal_uc_, constraint);
+			dead_uc = solver_->get_conflict (forward_, minimal_uc_, constraint);
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
 			if (forward_){
 				Cube tmp;
@@ -914,10 +983,14 @@ namespace car
 		stats_->count_clause_contain_time_start ();
 		for (int i = 0; i < frame.size (); i ++)
 		{   
-		
+			if (forward_){//for incremental
+				if (imply (cu, frame[i]))
+					return;
+			}
 			if (!imply (frame[i], cu))
 				tmp_frame.push_back (frame[i]);	
 			else {
+				
 			    stats_->count_clause_contain_success ();
 			}
 		} 
@@ -933,6 +1006,9 @@ namespace car
 		}
 		*/
 		frame = tmp_frame;
+		
+		if (frame_level-1 < minimal_update_level_)
+			minimal_update_level_ = frame_level;
 		
 		if (frame_level < int (F_.size ()))
 			solver_->add_clause_from_cube (cu, frame_level, forward_);
