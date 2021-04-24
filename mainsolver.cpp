@@ -147,12 +147,12 @@ namespace car
 		add_clause (cl);
 	}
 	
-	bool MainSolver::solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block, Cube& tmp_flags){
+	bool MainSolver::solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block){
 		//add temporary clause
 		int flag = max_flag_++;
 		vector<int> cl;
 		cl.push_back (-flag);
-		for (int i = 0; i < tmp_block.size (); i ++)
+		for (int i = 0; i < tmp_block.size (); ++i)
 		{
 			if (!forward)
 				cl.push_back (-model_->prime (tmp_block[i]));
@@ -162,7 +162,6 @@ namespace car
 		add_clause (cl);
 		
 		//add assumptions
-		tmp_flags.push_back (flag);
 		assumption_.clear ();
 		
 		for (int i = 0; i < s.size(); ++i){
@@ -172,10 +171,13 @@ namespace car
 				assumption_push (s[i]);
 		}
 		
-		for (int i = 0; i < tmp_flags.size(); ++i)
-			assumption_push (tmp_flags[i]);
+		assumption_push (flag);
+		assumption_push (flag_of (frame_level));
 			
-		return solve_with_assumption ();
+		bool res = solve_with_assumption ();
+		add_clause (-flag);
+		
+		return res;
 		
 	}
 	

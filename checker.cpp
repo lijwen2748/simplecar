@@ -663,10 +663,10 @@ namespace car
 		return res;
 	}
 	
-	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block, Cube& tmp_flags){
+	bool Checker::solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block){
 		assert (frame_level != -1);
 		
-		return solver_->solve_with_assumption_for_temporary (s, frame_level, forward_, tmp_block, tmp_flags);
+		return solver_->solve_with_assumption_for_temporary (s, frame_level, forward_, tmp_block);
 				
 	}
 	
@@ -796,8 +796,12 @@ namespace car
 			report_safe ();
 		}
 		
-		//Cube next_cu;
-		//cu = recursive_block (s, frame_level, cu, next_cu);
+		/*
+		if (frame_level <= F_.size()){
+			Cube next_cu;
+			cu = recursive_block (s, frame_level, cu, next_cu);
+		}
+		*/
 		
 		//pay attention to the size of cu!
 		if (safe_reported ())
@@ -822,10 +826,12 @@ namespace car
 		
 		push_to_frame (cu, frame_level);
 		
+		
 		if (forward_){
 			for (int i = frame_level-1; i >= 1; --i)
 				push_to_frame (cu, i);
 		}
+		
 		
 	}
 	
@@ -917,28 +923,37 @@ namespace car
 	
 	Cube Checker::recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu){
 		
-		Cube common = s->s(), common_cu = cu;
-		Cube tmp_flags;
+		Cube common = s->s();
+		State *tmp_s = new State (common);
+		
 		while (true){
-			Cube common_cp = common;
-			common_cp.insert (common_cp.begin (), cu.begin(), cu.end ());
 			
-			bool res = solve_for_recursive (common_cp, frame_level, cu, tmp_flags);
+			bool res = solve_for_recursive (common, frame_level, common);
 			if (!res){
 				next_cu = get_uc(common);
+				delete tmp_s;
 				return cu;
 			}
-			State* new_state = get_new_state (s);
+			State* new_state = get_new_state (tmp_s);
 			assert (new_state != NULL);
 			common = car::cube_intersect (common, new_state->s());
+			delete new_state;
+			tmp_s->set_s(common);
 			
-			common_cu = car::cube_intersect (common, common_cu);
-			
-			common_cp = common;
-			common_cp.insert (common_cp.begin (), common_cu.begin(), common_cu.end ());
-			
-			if (solve_with (common_cp, frame_level-1))
+			if (common.empty()){
+				delete tmp_s;
 				return cu;
+			}
+			
+			if (is_initial (common)){
+				delete tmp_s;
+				return cu;
+			}
+			
+			if (solve_with (common, frame_level-1)){
+				delete tmp_s;
+				return cu;
+			}
 			
 			cu = get_uc (common); 
 			

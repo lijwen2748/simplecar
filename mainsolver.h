@@ -83,7 +83,7 @@ class MainSolver : public CARSolver
 		//overload
 		void add_clause_from_cube (const Cube& cu, const int frame_level, const bool forward_);
 		
-		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block, Cube& tmp_flags);
+		bool solve_with_assumption_for_temporary (Cube& s, int frame_level, bool forward, Cube& tmp_block);
 		
 		inline void update_constraint (Cube& cu)
 		{

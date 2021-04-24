@@ -156,7 +156,7 @@ namespace car
 		void add_dead_to_solvers (Cube& dead_uc);
 		bool is_dead (const State* s, Cube& dead_uc);
 		
-		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block, Cube& tmp_flags);
+		bool solve_for_recursive (Cube& s, int frame_level, Cube& tmp_block);
 		Cube recursive_block (State* s, int frame_level, Cube cu, Cube& next_cu);
 		Cube get_uc (Cube& c);
 		

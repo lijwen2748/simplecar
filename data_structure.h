@@ -80,6 +80,7 @@
  		inline int size () {return s_.size ();}
  		inline int element (int i) {return s_[i];}
  		
+ 		inline void set_s (Cube &cube) {s_ = cube;}
  		inline void set_next (State* nx) {next_ = nx;}
  		static void set_num_inputs_and_latches (const int n1, const int n2); 
  		
