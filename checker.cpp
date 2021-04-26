@@ -1136,12 +1136,17 @@ namespace car
 	        
 	    std::vector<int> tmp;
 	    tmp.reserve (cu.size());
-	    for (int i = 0; i < cu.size() ; ++ i) {
-	    	if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
-	    		tmp.push_back (cu[i]);
+	    if(!forward_){
+	    	for (int i = 0; i < cu.size() ; ++ i) {
+	    		if (st[abs(cu[i])-model_->num_inputs ()-1] == cu[i]) {
+	    			tmp.push_back (cu[i]);
+	    		}
 	    	}
+	    	res = tmp;
 	    }
-	    res = tmp;
+	    else{
+	    	res = car::cube_intersect (cu, st);
+	    }
 	    //res.insert (res.begin (), tmp.begin (), tmp.end ());
 	}
 	
@@ -1182,8 +1187,8 @@ namespace car
 	        tmp_st.push_back (tmp[i]);
 	    st = tmp_st;
 	    */
-	    if(forward_)
-	    	return;
+	    //if(forward_)
+	    	//return;
 	    
 	    std::vector<int> prefix;
 	    if (inter_) 
