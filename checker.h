@@ -185,6 +185,11 @@ namespace car
 		inline void reset_start_solver (){
 	        assert (start_solver_ != NULL);
 	        start_solver_->reset ();
+	        if (propagate_){
+	        	for (int i = 0; i < frame_.size(); ++i)
+	        		start_solver_->add_clause_with_flag (frame_[i]);
+	        	
+	        }
 	    }
 	    
 	    inline bool reconstruct_start_solver_required () {

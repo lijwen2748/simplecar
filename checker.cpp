@@ -100,7 +100,8 @@ namespace car
 		    
 		    //handle the special start states
 			reset_start_solver ();
-		    clear_frame ();
+			if (!propagate_)
+		    	clear_frame ();
 			minimal_update_level_ = F_.size () - 1;
 			if (try_satisfy (frame_level)){
 				if (verbose_)
@@ -116,6 +117,7 @@ namespace car
 			extend_F_sequence ();
 			
 			if (propagate_){
+				clear_frame ();
 				if (propagate ())
 					return false;
 			}
@@ -301,18 +303,31 @@ namespace car
 	/*************propagation****************/
 	bool Checker::propagate (){
 		int start = forward_ ? (minimal_update_level_ == 0 ? 1 : minimal_update_level_) : minimal_update_level_;
-		for (int i = (start); i < F_.size()-1; ++i)
+		for (int i = (start); i < F_.size(); ++i)
 			if (propagate (i))
 				return true;
 		return false;
 	}
 	
 	bool Checker::propagate (int n){
-		assert (n >= 0 && n < F_.size()-1);
-		Frame frame = F_[n];
+		assert (n >= 0 && n < F_.size());
+		Frame& frame = F_[n];
+		Frame& next_frame = (n+1 >= F_.size()) ? frame_ : F_[n+1];
+		
 		bool flag = true;
 		for (int i = 0; i < frame.size (); ++i){
 			Cube& cu = frame[i];
+			
+			
+			bool propagated = false;
+			for (int j = 0; j < next_frame.size(); ++j){
+				if (car::imply (cu, next_frame[j]) && car::imply (next_frame[j], cu)){
+					propagated = true;
+					break;
+				}
+			}
+			if (propagated) continue;
+			
 	
 		    if (propagate (cu, n)){
 		    	push_to_frame (cu, n+1);
