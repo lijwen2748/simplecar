@@ -772,14 +772,14 @@ namespace car
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
-		/*
+		
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
 			//cout << "dead!" << endl;
 			add_dead_to_solvers (dead_uc);
 			return;
 		}
-		*/
+		
 		
 		
 		//foward cu MUST rule out those not in \@s
