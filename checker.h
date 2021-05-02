@@ -98,7 +98,7 @@ namespace car
 
 		Model* model_;
 		MainSolver *solver_;
-		MainSolver *lift_;
+		MainSolver *lift_, *dead_solver_;
 		StartSolver *start_solver_;
 		InvSolver *inv_solver_;
 		Fsequence F_;
@@ -164,12 +164,15 @@ namespace car
 		bool propagate ();
 		bool propagate (int n);
 		bool propagate (Cube& cu, int n);
+		
+		void add_dead_to_inv_solver ();
 				
 		
 		//inline functions
 		inline bool is_initial (Cube& c){return init_->imply (c);}
 		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, verbose_);
+			add_dead_to_inv_solver ();
 		}
 		inline void delete_inv_solver (){
 			delete inv_solver_;

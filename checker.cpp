@@ -364,6 +364,7 @@ namespace car
 		dot_ = dot;
 		solver_ = NULL;
 		lift_ = NULL;
+		dead_solver_ = NULL;
 		start_solver_ = NULL;
 		inv_solver_ = NULL;
 		init_ = new State (model_->init ());
@@ -424,6 +425,8 @@ namespace car
 	    solver_ = new MainSolver (model_, stats_, verbose_);
 	    if (forward_){
 	    	lift_ = new MainSolver (model_, stats_, verbose_);
+	    	dead_solver_ = new MainSolver (model_, stats_, verbose_);
+	    	dead_solver_->add_clause (-bad_);
 	    }
 		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
 		assert (F_.empty ());
@@ -450,6 +453,10 @@ namespace car
 	    if (lift_ != NULL) {
 	        delete lift_;
 	        lift_ = NULL;
+	    }
+	    if (dead_solver_ != NULL) {
+	        delete dead_solver_;
+	        dead_solver_ = NULL;
 	    }
 	    if (start_solver_ != NULL) {
 	        delete start_solver_;
@@ -735,7 +742,7 @@ namespace car
 			assert (!ret);
 			bool constraint = false;
 			st = lift_->get_conflict (!forward_, minimal_uc_, constraint);
-			/*not necessary
+		
 			//remove -bad_
 			for (auto it = st.begin(); it != st.end(); ++it){
 				if (*it == -bad_){
@@ -743,7 +750,7 @@ namespace car
 					break;
 				}
 			}
-			*/
+			
 			assert (!st.empty());
 		}
 	}
@@ -775,9 +782,11 @@ namespace car
 		
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
-			//cout << "dead!" << endl;
+			cout << "dead: " << endl;
+			car::print (dead_uc);
 			add_dead_to_solvers (dead_uc);
-			return;
+			//if (car::imply (cu, dead_uc))
+				return;
 		}
 		
 		
@@ -851,14 +860,15 @@ namespace car
 	}
 	
 	bool Checker::is_dead (const State* s, Cube& dead_uc){
+	
 		Cube assumption;
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
 			
-		bool res = solver_->solve_with_assumption (assumption);
+		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
 			bool constraint = false;
-			dead_uc = solver_->get_conflict (forward_, minimal_uc_, constraint);
+			dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
 			if (forward_){
 				Cube tmp;
@@ -883,7 +893,48 @@ namespace car
 			}
 			assert (!dead_uc.empty());
 		}
+		else
+			dead_solver_->CARSolver::add_clause_from_cube (s->s());
 		return !res;
+	}
+	
+	void Checker::add_dead_to_inv_solver (){
+		for (auto it = deads_.begin (); it != deads_.end(); ++it){
+			Clause cl;	
+			for (auto it2 = (*it).begin(); it2 != (*it).end (); ++it2){
+				cl.push_back (forward_? -(*it2) : -model_->prime(*it2));
+			}
+		
+			if (is_initial (*it)){
+				//create dead clauses : MUST consider the initial state not excluded by dead states!!!
+				std::vector<Clause> cls;
+				int init_flag = inv_solver_->new_var ();
+				int dead_flag = inv_solver_->new_var ();
+				if (true){//not consider initial state yet
+					Clause cl2;
+					
+					cl2.push_back (init_flag);
+					cl2.push_back (dead_flag);
+					cls.push_back (cl2);
+					//create clauses for I <- inv_solver_->init_flag
+					for (auto it2 = init_->s().begin(); it2 != init_->s().end(); ++it2){
+						cl2.clear ();
+						cl2.push_back (init_flag);
+						cl2.push_back (*it2);
+						cls.push_back (cl2);
+					}
+				}
+				//create clauses for !dead <-inv_solver->dead_flag
+				cl.push_back (dead_flag);
+				cls.push_back (cl);
+		
+				for (auto it2 = cls.begin(); it2 != cls.end(); ++it2){
+					inv_solver_->add_clause (*it2);
+				}
+			}
+			else
+				inv_solver_->add_clause (cl);
+		}
 	}
 	
 	void Checker::add_dead_to_solvers (Cube& dead_uc){
@@ -926,11 +977,13 @@ namespace car
 			for (auto it = cls.begin(); it != cls.end(); ++it){
 				solver_->add_clause (*it);
 				lift_->add_clause (*it);
+				dead_solver_->add_clause (*it);
 			}
 		}
 		else{
 			solver_->add_clause (cl);
 			lift_->add_clause (cl);
+			dead_solver_->add_clause (cl);
 		}
 			
 	}
