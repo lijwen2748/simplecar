@@ -782,8 +782,8 @@ namespace car
 		
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
-			cout << "dead: " << endl;
-			car::print (dead_uc);
+			//cout << "dead: " << endl;
+			//car::print (dead_uc);
 			add_dead_to_solvers (dead_uc);
 			//if (car::imply (cu, dead_uc))
 				return;
@@ -864,6 +864,7 @@ namespace car
 		Cube assumption;
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+		dead_solver_->CARSolver::add_clause_from_cube (s->s());
 			
 		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
@@ -893,8 +894,8 @@ namespace car
 			}
 			assert (!dead_uc.empty());
 		}
-		else
-			dead_solver_->CARSolver::add_clause_from_cube (s->s());
+		//else
+			//dead_solver_->CARSolver::add_clause_from_cube (s->s());
 		return !res;
 	}
 	
