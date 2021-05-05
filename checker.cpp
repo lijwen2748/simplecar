@@ -231,7 +231,7 @@ namespace car
 		//if (frame_level < minimal_update_level_)
 			//minimal_update_level_ = frame_level;
 		
-		
+		bool all_predeccessor_dead = true; 
 		if (frame_level == -1)
 		{
 		    if (immediate_satisfiable (s))
@@ -239,7 +239,7 @@ namespace car
 		}
 		else
 		{
-		    
+		 	  
 		    while (solve_with (const_cast<State*>(s)->s (), frame_level))
 		    {
 			    State* new_state = get_new_state (s);
@@ -266,6 +266,10 @@ namespace car
 				    return true;
 				if (safe_reported ())
 				    return false;
+				    
+				if (!new_state->is_dead ())
+					all_predeccessor_dead = false;
+					
 				if (frame_level < F_.size ())
 				{
 				    
@@ -277,6 +281,18 @@ namespace car
 				    }
 				}
 		    }
+		}
+		
+		if (all_predeccessor_dead){
+			Cube dead_uc;
+			if (is_dead (s, dead_uc)){
+				//cout << "dead: " << endl;
+				//car::print (dead_uc);
+				s->mark_dead ();
+				add_dead_to_solvers (dead_uc);
+				//if (car::imply (cu, dead_uc))
+				return false;
+			}
 		}
 
 		update_F_sequence (s, frame_level+1);
@@ -779,7 +795,7 @@ namespace car
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
 		
-		
+		/*
 		Cube dead_uc;
 		if (is_dead (s, dead_uc)){
 			//cout << "dead: " << endl;
@@ -788,7 +804,7 @@ namespace car
 			//if (car::imply (cu, dead_uc))
 				return;
 		}
-		
+		*/
 		
 		
 		//foward cu MUST rule out those not in \@s
@@ -1117,6 +1133,8 @@ namespace car
 	
 	bool Checker::tried_before (const State* st, const int frame_level) {
 		//check whether st is a dead state	
+		if (st->is_dead ()) 
+			return true;
 		for(auto it = deads_.begin(); it != deads_.end(); ++it){
 			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
 			res = res && !is_initial (st->s());
