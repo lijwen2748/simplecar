@@ -41,12 +41,12 @@
  	class State 
  	{
  	public:
- 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false) {}
+ 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false), added_to_dead_solver_ (false) {}
 
  		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false); 
  		
  		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_), 
- 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_), dead_ (false) {}
+ 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_), dead_ (false), added_to_dead_solver_ (false) {}
 
  		~State () {}
  		
@@ -96,7 +96,8 @@
  		
  		inline void mark_dead () {dead_ = true;}
  		inline bool is_dead () {return dead_;}
- 		
+ 		inline void set_added_to_dead_solver (bool val) {added_to_dead_solver_ = val;}
+ 		inline bool added_to_dead_solver () {return added_to_dead_solver_;}
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
@@ -108,6 +109,7 @@
  		bool init_;  //whether it is an initial state
  		bool final_; //whether it is an final state
  		bool dead_;  //whether it is a dead state 
+ 		bool added_to_dead_solver_; //whether it is added to the dead solver
  		int id_;     //the state id
  		int dep_;    //the length from the starting state
  		

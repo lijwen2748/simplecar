@@ -880,7 +880,11 @@ namespace car
 		Cube assumption;
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-		dead_solver_->CARSolver::add_clause_from_cube (s->s());
+			
+		if (!s->added_to_dead_solver ()){
+			dead_solver_->CARSolver::add_clause_from_cube (s->s());
+			s->set_added_to_dead_solver (true);
+		}
 			
 		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
