@@ -880,11 +880,20 @@ namespace car
 		Cube assumption;
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-			
+		
+		
+		Cube common;
+		if (deads_.size() > 0) 
+			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
+		assumption.insert (assumption.begin (), common.begin (), common.end ());
+		
+		
+		/*
 		if (!s->added_to_dead_solver ()){
 			dead_solver_->CARSolver::add_clause_from_cube (s->s());
 			s->set_added_to_dead_solver (true);
 		}
+		*/
 			
 		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
@@ -911,11 +920,45 @@ namespace car
 					}
 				}
 				dead_uc = tmp;
+				
+				/*
+				//shrink dead_uc
+				while (dead_uc.size() != assumption.size()){
+					assumption.clear ();
+					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it)
+						assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+						
+					dead_solver_->CARSolver::add_clause_from_cube (dead_uc);
+					
+					res = dead_solver_->solve_with_assumption (assumption);
+					assert (!res);
+					
+					constraint = false;
+					Cube last_dead_uc = dead_uc;
+					dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
+					//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
+					Cube tmp;
+					Cube &st = last_dead_uc;
+					hash_set<int> tmp_set;
+					for (auto it = st.begin (); it != st.end(); ++it)
+						tmp_set.insert (*it);
+					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
+						if (tmp_set.find (*it) != tmp_set.end())
+							tmp.push_back (*it);
+					}
+
+					dead_uc = tmp;
+				}
+				*/
 			}
 			assert (!dead_uc.empty());
 		}
-		//else
-			//dead_solver_->CARSolver::add_clause_from_cube (s->s());
+		else{
+			if (!s->added_to_dead_solver ()){
+				dead_solver_->CARSolver::add_clause_from_cube (s->s());
+				s->set_added_to_dead_solver (true);
+			}
+		}
 		return !res;
 	}
 	
