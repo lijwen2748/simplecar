@@ -286,8 +286,8 @@ namespace car
 		if (all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
-				//cout << "dead: " << endl;
-				//car::print (dead_uc);
+				cout << "dead: " << endl;
+				car::print (dead_uc);
 				s->mark_dead ();
 				add_dead_to_solvers (dead_uc);
 				//if (car::imply (cu, dead_uc))
@@ -878,14 +878,25 @@ namespace car
 	bool Checker::is_dead (const State* s, Cube& dead_uc){
 	
 		Cube assumption;
-		for (auto it = s->s().begin(); it != s->s().end(); ++it)
-			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-		
 		
 		Cube common;
 		if (deads_.size() > 0) 
 			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
-		assumption.insert (assumption.begin (), common.begin (), common.end ());
+			
+		for (auto it = common.begin(); it != common.end(); ++it)
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+			
+		for (auto it = s->s().begin(); it != s->s().end(); ++it)
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+		
+		/*
+		Cube common;
+		if (deads_.size() > 0) 
+			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
+		for (auto it = common.begin(); it != common.end(); ++it)
+			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
+		//assumption.insert (assumption.begin (), common.begin (), common.end ());
+		*/
 		
 		
 		/*
