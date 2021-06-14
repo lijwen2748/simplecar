@@ -9,7 +9,7 @@ CPPSOURCES = checker.cpp carsolver.cpp mainsolver.cpp model.cpp utility.cpp data
 OBJS = checker.o carsolver.o mainsolver.o model.o main.o utility.o data_structure.o aiger.o\
 	Solver.o Options.o System.o picosat.o
 
-CFLAG = -I../ -I./minisat -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g -fpermissive -O3
+CFLAG = -I../ -I./minisat -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g -fpermissive 
 #CFLAG = -I../ -I./glucose -D__STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -c -g 
 
 LFLAG = -g -lz -lpthread 

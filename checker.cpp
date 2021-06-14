@@ -286,8 +286,8 @@ namespace car
 		if (all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
-				//cout << "dead: " << endl;
-				//car::print (dead_uc);
+				cout << "dead: " << endl;
+				car::print (dead_uc);
 				s->mark_dead ();
 				add_dead_to_solvers (dead_uc);
 				//if (car::imply (cu, dead_uc))
@@ -879,6 +879,7 @@ namespace car
 	
 		Cube assumption;
 		
+		//Intersection for dead states
 		Cube common;
 		if (deads_.size() > 0) 
 			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
@@ -889,22 +890,6 @@ namespace car
 		for (auto it = s->s().begin(); it != s->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
 		
-		/*
-		Cube common;
-		if (deads_.size() > 0) 
-			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
-		for (auto it = common.begin(); it != common.end(); ++it)
-			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-		//assumption.insert (assumption.begin (), common.begin (), common.end ());
-		*/
-		
-		
-		/*
-		if (!s->added_to_dead_solver ()){
-			dead_solver_->CARSolver::add_clause_from_cube (s->s());
-			s->set_added_to_dead_solver (true);
-		}
-		*/
 			
 		bool res = dead_solver_->solve_with_assumption (assumption);
 		if (!res){
@@ -932,35 +917,6 @@ namespace car
 				}
 				dead_uc = tmp;
 				
-				/*
-				//shrink dead_uc
-				while (dead_uc.size() != assumption.size()){
-					assumption.clear ();
-					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it)
-						assumption.push_back (forward_ ? model_->prime (*it) : (*it));
-						
-					dead_solver_->CARSolver::add_clause_from_cube (dead_uc);
-					
-					res = dead_solver_->solve_with_assumption (assumption);
-					assert (!res);
-					
-					constraint = false;
-					Cube last_dead_uc = dead_uc;
-					dead_uc = dead_solver_->get_conflict (forward_, minimal_uc_, constraint);
-					//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
-					Cube tmp;
-					Cube &st = last_dead_uc;
-					hash_set<int> tmp_set;
-					for (auto it = st.begin (); it != st.end(); ++it)
-						tmp_set.insert (*it);
-					for (auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
-						if (tmp_set.find (*it) != tmp_set.end())
-							tmp.push_back (*it);
-					}
-
-					dead_uc = tmp;
-				}
-				*/
 			}
 			assert (!dead_uc.empty());
 		}
@@ -1026,11 +982,17 @@ namespace car
 		for (auto it = dead_uc.begin(); it != dead_uc.end (); ++it){
 			cl.push_back (forward_? -(*it) : -model_->prime(*it));
 		}
+		
+		Clause clprime;	
+		for (auto it = dead_uc.begin(); it != dead_uc.end (); ++it){
+			clprime.push_back (forward_? -(*it) : -model_->prime(*it));
+		}
+		
 		start_solver_->add_clause (cl);
 		
 		if (is_initial (dead_uc)){
 			//create dead clauses : MUST consider the initial state not excluded by dead states!!!
-			std::vector<Clause> cls;
+			std::vector<Clause> cls, clsprime;
 			if (!dead_flag_){//not consider initial state yet
 				Clause cl2;
 				cl2.push_back (solver_->init_flag());
@@ -1043,21 +1005,45 @@ namespace car
 					cl2.push_back (*it);
 					cls.push_back (cl2);
 				}
+				
+				Clause cl2prime;
+				cl2prime.push_back (solver_->init_flag());
+				cl2prime.push_back (solver_->dead_flag());
+				cls.push_back (cl2prime);
+				//create clauses for I <- solver_->init_flag()
+				for (auto it = init_->s().begin(); it != init_->s().end(); ++it){
+					cl2prime.clear ();
+					cl2prime.push_back (-solver_->init_flag());
+					cl2prime.push_back (*it);
+					clsprime.push_back (cl2prime);
+				}
 				dead_flag_ = true;
 			}
 			//create clauses for !dead <-solver_->dead_flag()
 			cl.push_back (-solver_->dead_flag());
 			cls.push_back (cl);
+			
+			clprime.push_back (-solver_->dead_flag());
+			clsprime.push_back (clprime);
 		
 			for (auto it = cls.begin(); it != cls.end(); ++it){
 				solver_->add_clause (*it);
-				lift_->add_clause (*it);
+				//lift_->add_clause (*it);
 				dead_solver_->add_clause (*it);
 			}
+			
+			
+			for (auto it = clsprime.begin(); it != clsprime.end(); ++it){
+				lift_->add_clause (*it);
+			}
+			
 		}
 		else{
 			solver_->add_clause (cl);
-			lift_->add_clause (cl);
+			
+			lift_->add_clause (clprime);
+			
+			//lift_->add_clause (cl);
 			dead_solver_->add_clause (cl);
 		}
 			
