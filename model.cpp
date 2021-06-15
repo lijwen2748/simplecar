@@ -42,6 +42,7 @@ namespace car{
 		num_ands_ = aig->num_ands;
 		num_constraints_ = aig->num_constraints;
 		num_outputs_ = aig->num_outputs;
+		num_bads_ = aig->num_bad;
 		
 		//preserve two more ids for TRUE (max_id_ - 1) and FALSE (max_id_)
 		max_id_ = aig->maxvar+2;
@@ -52,6 +53,7 @@ namespace car{
 		
 		set_constraints (aig);
 		set_outputs (aig);
+		set_bads (aig);
 		
 		set_init (aig);
 		
@@ -137,7 +139,21 @@ namespace car{
 			add_clauses_from_gate (aa);
 		}
 		
+		set_bads_start ();
 		
+		//create clauses for bads
+		gates.resize (max_id_+1, 0);
+		collect_necessary_gates (aig, aig->bad, aig->num_bad, exist_gates, gates);
+		
+		for (vector<unsigned>::iterator it = gates.begin (); it != gates.end (); it ++)
+		{
+		    if (*it == 0) continue;
+			aiger_and* aa = aiger_is_and (const_cast<aiger*>(aig), *it);
+			assert (aa != NULL);
+			add_clauses_from_gate (aa);
+		}
+		
+		if (num_bads_ == 0){
 		set_outputs_start ();
 		
 		//create clauses for outputs
@@ -151,6 +167,8 @@ namespace car{
 			assert (aa != NULL);
 			add_clauses_from_gate (aa);
 		}
+		}
+		
 		
 		set_latches_start ();
 		
@@ -253,9 +271,9 @@ namespace car{
 			else if (aig->latches[i].reset == 1)
 				init_.push_back (num_inputs_+1+i);
 			else
-			{
-				cout << "Error setting initial state!" << endl;
-				exit (0);
+			{//uninitialized: can be 0 or 1
+				//cout << "Error setting initial state!" << endl;
+				//exit (0);
 			}
 		}
 	}
@@ -275,6 +293,15 @@ namespace car{
 		{
 			int id = (int) aig->outputs[i].lit;
 			outputs_.push_back ((id%2 == 0) ? (id/2) : -(id/2));
+		}
+	}
+	
+	void Model::set_bads (const aiger* aig)
+	{
+		for (int i = 0; i < aig->num_bad; i ++)
+		{
+			int id = (int) aig->bad[i].lit;
+			bads_.push_back ((id%2 == 0) ? (id/2) : -(id/2));
 		}
 	}
 	

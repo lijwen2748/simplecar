@@ -225,7 +225,7 @@ void check_aiger (int argc, char** argv)
    
    //assume that there is only one output needs to be checked in each aiger model, 
    //which is consistent with the HWMCC format
-   assert (model->num_outputs () >= 1);
+   assert (model->num_bads () >= 1 | model->num_outputs () >= 1);
    
    ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc);
 

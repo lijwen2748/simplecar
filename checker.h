@@ -169,7 +169,7 @@ namespace car
 				
 		
 		//inline functions
-		inline bool is_initial (Cube& c){return init_->imply (c);}
+		inline bool is_initial (Cube& c){return (init_->size() == model_->num_latches ()) ? init_->imply (c) : car::imply (init_->s(), c);}
 		inline void create_inv_solver (){
 			inv_solver_ = new InvSolver (model_, verbose_);
 			add_dead_to_inv_solver ();

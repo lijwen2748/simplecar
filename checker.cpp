@@ -31,8 +31,10 @@ namespace car
 {
     ///////////////////////////////////main functions//////////////////////////////////
     bool Checker::check (std::ofstream& out){
-	    for (int i = 0; i < model_->num_outputs (); i ++){
-	        bad_ = model_->output (i);
+    	vector<int> bads = (model_->num_bads () == 0) ? model_->outputs () : model_->bads ();
+    	
+	    for (int i = 0; i < bads.size (); i ++){
+	        bad_ = bads[i];
 	        
 	        //for the particular case when bad_ is true or false
 	        if (bad_ == model_->true_id ()){
@@ -283,7 +285,7 @@ namespace car
 		    }
 		}
 		
-		if (all_predeccessor_dead){
+		if (forward_ && all_predeccessor_dead){
 			Cube dead_uc;
 			if (is_dead (s, dead_uc)){
 				cout << "dead: " << endl;
@@ -853,7 +855,19 @@ namespace car
 		if (forward_){
 			if (is_initial (cu)){
 				auto it = s->s().begin();
-				while ((*it) < 0) ++it;
+				auto it_init = init_->s().begin ();
+				//s and init_ have to be ordered!!
+				while (true){
+					if (abs (*it) < abs (*it_init)) //*it is not in init_
+				 		break;
+				 	else if (abs (*it) > abs (*it_init))//*it may be in init_
+				 		++it_init;
+				 	else{
+				 		++it;
+				 		++it_init;
+				 	}
+				 	assert (it_init != init_->s().end ());
+				}
 				assert (it != s->s().end());
 				int i = 0;
 				for (; i < cu.size(); ++i)

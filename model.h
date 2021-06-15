@@ -49,8 +49,12 @@ public:
 	inline int num_ands () {return num_ands_;}
 	inline int num_constraints () {return num_constraints_;}
 	inline int num_outputs () {return num_outputs_;}
+	inline int num_bads () {return num_bads_;}
+	inline std::vector<int>& outputs () {return outputs_;}
+	inline std::vector<int>& bads () {return bads_;}
 	inline int max_id () {return max_id_;}
 	inline int outputs_start () {return outputs_start_;}
+	inline int bads_start () {return bads_start_;}
 	inline int latches_start () {return latches_start_;}
 	inline int size () {return cls_.size ();}
 	inline std::vector<int>& element (const int id) {return cls_[id];}
@@ -77,6 +81,7 @@ private:
 	int num_ands_;
 	int num_constraints_;
 	int num_outputs_;
+	int num_bads_;
 	
 	int max_id_;  //maximum used id in the model
 	
@@ -88,6 +93,7 @@ private:
 	
 	vect init_;   //initial state
 	vect outputs_; //output ids
+	vect bads_;   //bad ids
 	vect constraints_; //constraint ids
 	Clauses cls_;  //set of clauses, it contains three parts:
 	                //(1) clauses for constraints, i.e. those before position outputs_start_;
@@ -96,6 +102,7 @@ private:
 	
 	int outputs_start_; //the index of cls_ to point the start position of outputs
 	int latches_start_; //the index of cls_ to point the start position of latches
+	int bads_start_; //the index of cls_ to point the start position of bads
 	
 	typedef hash_map<int, int> nextMap;
 	nextMap next_map_;  //map from latches to their next values
@@ -157,6 +164,11 @@ private:
 	    latches_start_ = cls_.size ();
 	}
 	
+	inline void set_bads_start ()
+	{
+	    bads_start_ = cls_.size ();
+	}
+	
 	void collect_trues (const aiger* aig);
 	void create_next_map (const aiger* aig);
 	void create_clauses (const aiger* aig);
@@ -167,6 +179,7 @@ private:
 	void set_init (const aiger* aig);
 	void set_constraints (const aiger* aig);
 	void set_outputs (const aiger* aig);
+	void set_bads (const aiger* aig);
 	void insert_to_reverse_next_map (const int index, const int val);
 public:
 	bool propagate (const std::vector<int>& assump, std::vector<int>& res);

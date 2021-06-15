@@ -42,11 +42,20 @@ namespace car
 		dead_flag_ = m->max_id () + 2;
 		max_flag_ = m->max_id() + 3;
 	    //constraints
-		for (int i = 0; i < m->outputs_start (); i ++)
+	    int end = (m->num_bads () == 0) ? m->outputs_start () : m->bads_start ();
+		for (int i = 0; i < end; i ++)
 			add_clause (m->element (i));
-		//outputs
-		for (int i = m->outputs_start (); i < m->latches_start (); i ++)
-			add_clause (m->element (i));
+		
+		if (m->num_bads () == 0){//take outputs as the bad properties
+			//outputs
+			for (int i = m->outputs_start (); i < m->latches_start (); i ++)
+				add_clause (m->element (i));
+		}
+		else{
+			//bads
+			for (int i = m->bads_start (); i < m->latches_start (); i ++)
+				add_clause (m->element (i));
+		}
 		//latches
 		for (int i = m->latches_start (); i < m->size (); i ++)
 		    add_clause (m->element (i));

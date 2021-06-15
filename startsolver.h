@@ -31,15 +31,16 @@
 namespace car {
     class StartSolver : public CARSolver {
     public:
-        StartSolver (const Model* m, const int bad, const bool forward, const bool verbose = false)
+        StartSolver (Model* m, const int bad, const bool forward, const bool verbose = false)
         {
             verbose_ = verbose;
             if (!forward)
-                add_cube (const_cast<Model*>(m)->init ());
+                add_cube (m->init ());
             else
             {
-                for (int i = 0; i < const_cast<Model*>(m)->latches_start (); i ++)
-                    add_clause (const_cast<Model*>(m)->element (i));
+            	//int end = (m->num_bads () == 0) ? m->latches_start () : m->outputs_start ();
+                for (int i = 0; i < m->latches_start (); i ++)
+                    add_clause (m->element (i));
                 assumption_push (bad);
             }
             
