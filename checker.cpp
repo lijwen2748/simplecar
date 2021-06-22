@@ -863,8 +863,12 @@ namespace car
 				 	else if (abs (*it) > abs (*it_init))//*it may be in init_
 				 		++it_init;
 				 	else{
-				 		++it;
-				 		++it_init;
+				 		if (*it == *it_init){
+				 			++it;
+				 			++it_init;
+				 		}
+				 		else  //*it is not in init_
+				 			break;
 				 	}
 				 	assert (it_init != init_->s().end ());
 				}
