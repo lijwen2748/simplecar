@@ -398,7 +398,7 @@ namespace car
 		comms_.push_back (cu);
 		}
 		F_.push_back (frame);
-		Cube& cu = init_->s();
+		const Cube& cu = init_->s();
 		cubes_.push_back (cu);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
@@ -589,7 +589,7 @@ namespace car
 		
 		//foward cu MUST rule out those not in \@s
 		Cube tmp;
-		Cube &st = s->s();
+		const Cube &st = s->s();
 		for(auto it = cu.begin(); it != cu.end(); ++it){
 			int latch_start = model_->num_inputs()+1;
 			if (st[abs(*it)-latch_start] == *it)
