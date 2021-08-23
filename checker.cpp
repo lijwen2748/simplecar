@@ -82,6 +82,8 @@ namespace car
 	bool Checker::car_check (){
 		if (verbose_)
 			cout << "start check ..." << endl;
+		//cout << "initial state is " << endl;
+		//car::print (init_->s());
 		if (immediate_satisfiable ()){
 			if (verbose_)
 				cout << "return SAT from immediate_satisfiable" << endl;
@@ -490,6 +492,7 @@ namespace car
 	    {
 	        Assignment st = solver_->get_model ();
 	        std::pair<Assignment, Assignment> pa = state_pair (st);
+	        car::print (pa.second);
 	        if (forward_)
 	            init_->set_inputs (pa.first);
 	        else

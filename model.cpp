@@ -274,6 +274,7 @@ namespace car{
 			{//uninitialized: can be 0 or 1
 				//cout << "Error setting initial state!" << endl;
 				//exit (0);
+				cout << "latch " << num_inputs_+1+i << " is uncertain" << endl;
 			}
 		}
 	}
