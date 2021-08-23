@@ -67,7 +67,7 @@
  		void print_evidence (bool forward, std::ofstream&);
  		
  		inline int depth () {return dep_;}
-		inline const Assignment& s () const {return s_;}
+		inline Assignment& s () {return s_;}
  		inline State* next () {return next_;}
  		inline State* pre () {return pre_;}
  		inline Assignment& inputs_vec () {return inputs_;}

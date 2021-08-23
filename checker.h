@@ -59,7 +59,7 @@ namespace car
 	class Checker 
 	{
 	public:
-		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false);
+		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false, bool ilock = false);
 		~Checker ();
 		
 		bool check (std::ofstream&);
@@ -78,6 +78,7 @@ namespace car
 		bool minimal_uc_;
 		bool evidence_;
 		bool verbose_;
+		bool ilock_;  //for ilock, bad = -output
 		
 		//new flags for reorder and state enumeration
 		bool begin_, end_;  // for state enumeration

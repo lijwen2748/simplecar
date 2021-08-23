@@ -1,0 +1,2 @@
+/usr/bin/ar qc libminisat.a  CMakeFiles/minisat.dir/core/Main.cc.o CMakeFiles/minisat.dir/core/Solver.cc.o CMakeFiles/minisat.dir/utils/Options.cc.o CMakeFiles/minisat.dir/utils/System.cc.o
+/usr/bin/ranlib libminisat.a

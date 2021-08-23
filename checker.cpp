@@ -32,7 +32,10 @@ namespace car
     ///////////////////////////////////main functions//////////////////////////////////
     bool Checker::check (std::ofstream& out){
 	    for (int i = 0; i < model_->num_outputs (); i ++){
-	        bad_ = model_->output (i);
+	        if(ilock_){
+				bad_ = - model_->output (i);
+			}
+			else bad_ = model_->output (i);
 	        
 	        //for the particular case when bad_ is true or false
 	        if (bad_ == model_->true_id ()){
@@ -73,7 +76,9 @@ namespace car
     			print_evidence (out);
     		out << "." << endl;
 	        car_finalization ();
-	        return res;
+			//return res;
+			if (i == model_->num_outputs () - 1)
+	        	return res;
 	    }
 	}
 	
@@ -132,7 +137,7 @@ namespace car
 	
 	bool Checker::try_satisfy (const int frame_level)
 	{
-		
+				
 		int res = do_search (frame_level);
 		if (res == 1)
 		    return true;
@@ -143,7 +148,6 @@ namespace car
 		State *s = enumerate_start_state ();
 		while (s != NULL)
 		{
-		
 		    if (!forward_) //for dot drawing
 			    s->set_initial (true);
 			
@@ -275,7 +279,7 @@ namespace car
 		
 	//////////////helper functions/////////////////////////////////////////////
 
-	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc)
+	Checker::Checker (Model* model, Statistics& stats, ofstream* dot, bool forward, bool evidence, bool begin, bool end, bool inter, bool rotate, bool verbose, bool minimal_uc, bool ilock)
 	{
 	    
 		model_ = model;
@@ -289,6 +293,7 @@ namespace car
 		forward_ = forward;
 		safe_reported_ = false;
 		minimal_uc_ = minimal_uc;
+		ilock_ = ilock;
 		evidence_ = evidence;
 		verbose_ = verbose;
 		minimal_update_level_ = F_.size ()-1;
@@ -398,7 +403,7 @@ namespace car
 		comms_.push_back (cu);
 		}
 		F_.push_back (frame);
-		const Cube& cu = init_->s();
+		Cube& cu = init_->s();
 		cubes_.push_back (cu);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
@@ -586,16 +591,7 @@ namespace car
 	{	
 		bool constraint = false;
 		Cube cu = solver_->get_conflict (forward_, minimal_uc_, constraint);
-		
-		//foward cu MUST rule out those not in \@s
-		Cube tmp;
-		const Cube &st = s->s();
-		for(auto it = cu.begin(); it != cu.end(); ++it){
-			int latch_start = model_->num_inputs()+1;
-			if (st[abs(*it)-latch_start] == *it)
-				tmp.push_back (*it);
-		}
-		cu = tmp;
+			
 		//pay attention to the size of cu!
 		if (cu.empty ())
 		{
