@@ -25,6 +25,9 @@
 #include "carsolver.h"
 #include <iostream>
 #include <vector>
+#include <algorithm>    //zhang xiaou add this code
+#include <fstream>      //zhang xiaou add this code
+#include <cmath>      //zhang xiaou add this code
 using namespace std;
 
 #ifndef ENABLE_PICOSAT  
@@ -74,19 +77,19 @@ namespace car
 	//return the UC from SAT solver when it provides UNSAT
  	std::vector<int> CARSolver::get_uc () {
  		std::vector<int> reason;
-		if (verbose_)
-			cout << "get uc: \n";
+		//if (verbose_)
+			//cout << "get uc: \n";
 		//const int *p = picosat_failed_assumptions (picosat_);
 		const int *p = picosat_mus_assumptions (picosat_, 0, NULL, 0);
 		while (*p != 0) {
 		    reason.push_back (*p);
-		    if (verbose_)
-				cout << *p << ", ";
+		    //if (verbose_)
+				//cout << *p << ", ";
 		    p++; 
 		}
  		
-		if (verbose_)
-			cout << endl;
+		//if (verbose_)
+			//cout << endl;
     	return reason;
   	}
 	
@@ -119,6 +122,7 @@ namespace car
  	bool CARSolver::solve_assumption ()
 	{
 		lbool ret = solveLimited (assumption_);
+		/*
 		if (verbose_)
 		{
 			cout << "CARSolver::solve_assumption: assumption_ is" << endl;
@@ -126,6 +130,7 @@ namespace car
 				cout << lit_id (assumption_[i]) << ", ";
 			cout << endl;
 		}
+		*/
 		if (ret == l_True)
      		return true;
    		else if (ret == l_Undef)
@@ -147,11 +152,21 @@ namespace car
    		}
    		return res;
 	}
-	
-	//return the UC from SAT solver when it provides UNSAT
- 	std::vector<int> CARSolver::get_uc ()
- 	{
- 		std::vector<int> reason;
+	 //zhang xiaoyu code begins
+
+    //  push a new reason/UC to the back of assumption_
+	void CARSolver::update_assumption(std::vector<int> new_reason)
+	{
+		for(int i=0;i<new_reason.size();i++)
+		{
+			assumption_push(new_reason[i]);
+		}
+	}
+
+	//get UC from solver
+	std::vector<int> CARSolver::get_solver_uc()
+	{
+		std::vector<int> reason;
 		if (verbose_)
 			cout << "get uc: \n";
  		for (int k = 0; k < conflict.size(); k++) 
@@ -164,6 +179,84 @@ namespace car
 		if (verbose_)
 			cout << endl;
     	return reason;
+	}
+    //count_main_solver_SAT_time_end 
+	std::vector<int> CARSolver::get_mus(std::vector<int> m_reason)
+	{
+
+		std::vector<int> mus;                       //mus core
+		//int long_flag = 216;
+		clear_assumption();                    //clear the assumption before
+		update_assumption(m_reason);           //update assumption to the UC returned by last sat call
+		int long_flag = (assumption_.size() < 216)?assumption_.size():0;
+		//int max_interation = 25;
+		while(assumption_.size()>0 && long_flag>0)
+		{
+			long_flag--;
+			int pop_element;
+			std::vector<int> temp_assumption;
+			for(int i=0;i<assumption_.size();i++)
+			{
+				//if(i == int(assumption_.size()*sat_times/max_sat_time)) pop_element = lit_id(assumption_[i]);
+				if(i == 0) pop_element = lit_id(assumption_[i]);
+				else temp_assumption.push_back(lit_id(assumption_[i]));
+			}
+			clear_assumption();
+			update_assumption(temp_assumption);
+			update_assumption(mus);    //merge mus core with assumption
+
+            //stats_->count_get_uc_solver_SAT_time_start ();
+			bool res = solve_assumption();
+			//stats_->count_get_uc_solver_SAT_time_end ();
+			for(int i=0;i<mus.size();i++)
+			{
+				assumption_pop();       //remove mus core from assumption_
+			}
+			
+			if(res)                      //if sat,then the element being poped is a transition clause
+			{
+				mus.push_back(pop_element);         //aad transition clause into mus core
+			}
+			else
+			{
+				//max_interation--;
+				std::vector<int> inner_uc = get_solver_uc();
+				clear_assumption();
+				for(int i=0;i<inner_uc.size();i++)
+				{
+					if( std::find(mus.begin(),mus.end(),inner_uc[i]) == mus.end())
+					{
+						assumption_push(inner_uc[i]);   //update the assumption_ according to new reason
+					}
+				}
+			}
+		}
+        std::vector<int> mus_reason;
+        update_assumption(mus);
+		for (int i = 0; i < assumption_.size(); i++)
+		{
+			mus_reason.push_back(lit_id (assumption_[i]));
+		}
+        return mus_reason;  
+	}
+	//zhang xiaoyu code ends
+	//return the UC from SAT solver when it provides UNSAT
+ 	std::vector<int> CARSolver::get_uc ()
+ 	{
+ 		std::vector<int> reason;
+		//if (verbose_)
+			//cout << "get uc: \n";
+ 		for (int k = 0; k < conflict.size(); k++) 
+ 		{
+        	Lit l = conflict[k];
+        	reason.push_back (-lit_id (l));
+			//if (verbose_)
+				//cout << -lit_id (l) << ", ";
+    	}
+		//if (verbose_)
+			//cout << endl;
+    	// return get_mus(reason);
+		return reason;
   	}
 	
 	void CARSolver::add_clause (std::vector<int>& v)

@@ -80,6 +80,7 @@ bool imply ( std::vector<int>& v1,  std::vector<int>& v2)
     if (v1.size () < v2.size ())
         return false;
     
+    
     std::vector<int>::iterator first1 = v1.begin (), first2 = v2.begin (), last1 = v1.end (), last2 = v2.end ();
     while (first2 != last2) 
     {
@@ -138,6 +139,16 @@ std::vector<int> vec_intersect (const std::vector<int>& v1, const std::vector<in
     }
     return res;
 
+}
+
+bool is_in (const int id, const std::vector<int>& v, const int begin, const int end){
+	//v is in order
+	if (begin > end)
+		return false;
+	int pos = (begin+end)/2;
+	if (v[pos] == id)
+		return true;
+	return (is_in (id, v, begin, pos-1) || is_in (id, v, pos+1, end));
 }
 
 
