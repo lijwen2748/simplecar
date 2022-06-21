@@ -42,6 +42,10 @@ void print (const hash_map<int, int>& m);
 
 void print (const hash_map<int, std::vector<int> >& m);
 
+bool is_in (const int id, const std::vector<int>& v, const int begin, const int end);
+
+
+
 //elements in v1, v2 are in order
 //check whether v2 is contained in v1 
 bool imply (std::vector<int>& v1, std::vector<int>& v2);
