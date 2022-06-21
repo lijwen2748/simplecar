@@ -534,7 +534,7 @@ namespace car
 		comms_.push_back (cu);
 		}
 		F_.push_back (frame);
-		Cube& cu = init_->s();
+		const Cube& cu = init_->s();
 		cubes_.push_back (cu);
 		solver_->add_new_frame (frame, F_.size()-1, forward_);
 	}
@@ -735,7 +735,7 @@ namespace car
 			return;
 		Cube assumption = st;
 		if (s != NULL){
-			Cube& cube = s->s();
+			const Cube& cube = s->s();
 			Clause cl;
 			for (auto it = cube.begin(); it != cube.end(); ++it)
 				cl.push_back (-model_->prime (*it));
@@ -820,7 +820,7 @@ namespace car
 		//foward cu MUST rule out those not in \@s
 		if (forward_){
 			Cube tmp;
-			Cube &st = s->s();
+			const Cube &st = s->s();
 			if (!partial_state_){
 				for(auto it = cu.begin(); it != cu.end(); ++it){
 					int latch_start = model_->num_inputs()+1;
@@ -923,7 +923,7 @@ namespace car
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
 			if (forward_){
 				Cube tmp;
-				Cube &st = s->s();
+				const Cube &st = s->s();
 				if (!partial_state_){
 					for(auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
 						int latch_start = model_->num_inputs()+1;
@@ -977,7 +977,7 @@ namespace car
 		else{
 			if (!s->added_to_dead_solver ()){
 				dead_solver_->CARSolver::add_clause_from_cube (s->s());
-				s->set_added_to_dead_solver (true);
+				const_cast<State*>(s)->set_added_to_dead_solver (true);
 			}
 		}
 		return !res;
@@ -1207,7 +1207,7 @@ namespace car
 			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
 			res = res && !is_initial (st->s());
 			if (res){
-				st->mark_dead ();
+				const_cast<State*>(st)->mark_dead ();
 				return true;
 			}
 		}

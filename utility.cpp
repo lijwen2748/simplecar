@@ -74,14 +74,14 @@ bool comp (int i, int j)
 
 //elements in v1, v2 are in order
 //check whether v2 is contained in v1 
-bool imply ( std::vector<int>& v1,  std::vector<int>& v2)
+bool imply (const std::vector<int>& v1, const std::vector<int>& v2)
 {
 
     if (v1.size () < v2.size ())
         return false;
     
     
-    std::vector<int>::iterator first1 = v1.begin (), first2 = v2.begin (), last1 = v1.end (), last2 = v2.end ();
+    std::vector<int>::const_iterator first1 = v1.begin (), first2 = v2.begin (), last1 = v1.end (), last2 = v2.end ();
     while (first2 != last2) 
     {
         if ( (first1 == last1) || comp (*first2, *first1) ) 
