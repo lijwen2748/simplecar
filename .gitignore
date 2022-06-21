@@ -2,4 +2,11 @@
 *.log
 *.res
 *.ps
+*.o
+*.a
+build
+picosat/picomus
+picosat/picomcs
+picosat/picosat
+picosat/picogcnf
 simplecar
