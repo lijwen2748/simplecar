@@ -48,7 +48,7 @@ bool is_in (const int id, const std::vector<int>& v, const int begin, const int 
 
 //elements in v1, v2 are in order
 //check whether v2 is contained in v1 
-bool imply (const std::vector<int>& v1, const std::vector<int>& v2);
+bool imply (std::vector<int>& v1, std::vector<int>& v2);
 
 std::vector<int> vec_intersect (const std::vector<int>& v1, const std::vector<int>& v2);
 inline std::vector<int> cube_intersect (const std::vector<int>& v1, const std::vector<int>& v2)

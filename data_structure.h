@@ -67,7 +67,7 @@
  		void print_evidence (bool forward, std::ofstream&);
  		
  		inline int depth () {return dep_;}
- 		inline const Assignment& s () const {return s_;}
+ 		inline Assignment& s () {return s_;}
  		inline State* next () {return next_;}
  		inline State* pre () {return pre_;}
  		inline Assignment& inputs_vec () {return inputs_;}
@@ -95,9 +95,9 @@
  		inline int work_count_reset () {work_count_ = 0;}
  		
  		inline void mark_dead () {dead_ = true;}
- 		inline bool is_dead () const {return dead_;}
+ 		inline bool is_dead () {return dead_;}
  		inline void set_added_to_dead_solver (bool val) {added_to_dead_solver_ = val;}
- 		inline bool added_to_dead_solver () const {return added_to_dead_solver_;}
+ 		inline bool added_to_dead_solver () {return added_to_dead_solver_;}
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
