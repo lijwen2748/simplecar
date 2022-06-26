@@ -456,6 +456,7 @@ namespace car
 		start_solver_ = new StartSolver (model_, bad_, forward_, verbose_);
 		assert (F_.empty ());
 		assert (B_.empty ());
+		safe_reported_ = false;
 		
 	}
 	
