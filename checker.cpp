@@ -30,7 +30,7 @@ using namespace std;
 namespace car
 {
     ///////////////////////////////////main functions//////////////////////////////////
-    bool Checker::check (std::ofstream& out){
+    void Checker::check (std::ofstream& out){
 	    for (int i = 0; i < model_->num_outputs (); i ++){
 	        if(ilock_)	bad_ = - model_->output (i);
 			else bad_ = model_->output (i);
@@ -51,7 +51,8 @@ namespace car
 	        	if (verbose_){
 	        		cout << "return SAT since the output is true" << endl;
 	        	}
-	        	return true;
+	        	//return true;
+				continue;
 	        }
 	        else if (bad_ == model_->false_id ()){
 	        	out << "0" << endl;
@@ -60,7 +61,8 @@ namespace car
 	        	if (verbose_){
 	        		cout << "return UNSAT since the output is false" << endl;
 	        	}
-	        	return false;
+	        	//return false;
+				continue;
 	        }
 	        
 	        car_initialization ();
@@ -73,10 +75,14 @@ namespace car
    			if (evidence_ && res)
     			print_evidence (out);
     		out << "." << endl;
+			if (!res)
+			{
+				model_->add_constraint (-bad_);
+			}
 			//solver_->print_clauses();
 	        car_finalization ();
-	        if (i == model_->num_outputs () - 1)
-	        	return res;
+	        //if (i == model_->num_outputs () - 1)
+	        //	return res;
 	    }
 	}
 	

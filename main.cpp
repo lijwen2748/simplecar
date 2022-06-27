@@ -233,7 +233,7 @@ void check_aiger (int argc, char** argv)
 
    aiger_reset(aig);
    
-   bool res = ch->check (res_file);
+   ch->check (res_file);
     
    delete model;
    model = NULL;

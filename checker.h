@@ -62,7 +62,7 @@ namespace car
 		Checker (Model* model, Statistics& stats, std::ofstream* dot, bool forward = true, bool evidence = false, bool partial = false, bool propagate = false, bool begin = false, bool end = true, bool inter = true, bool rotate = false, bool verbose = false, bool minimal_uc = false,bool ilock = false);
 		~Checker ();
 		
-		bool check (std::ofstream&);
+		void check (std::ofstream&);
 		void print_evidence (std::ofstream&);
 		inline int frame_size () {return frame_.size ();}
 		inline void print_frames_sizes () {

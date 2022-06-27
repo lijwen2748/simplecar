@@ -63,6 +63,13 @@ public:
 	
 	inline int true_id () {return true_;}
 	inline int false_id () {return false_;}
+
+	inline void add_constraint (const int id)
+	{
+		constraints_.emplace_back (id);
+		num_constraints_ ++;
+		cls_.emplace_back (clause (id));
+	}
 	
 	//printer
 	void print ();
@@ -156,6 +163,9 @@ private:
 	{
 	    latches_start_ = cls_.size ();
 	}
+
+	
+
 	
 	void collect_trues (const aiger* aig);
 	void create_next_map (const aiger* aig);
