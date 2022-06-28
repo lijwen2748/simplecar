@@ -9,6 +9,7 @@ if (CYGWIN OR MINGW)
   add_compile_options(-Wa,-mbig-obj)
 endif()
 add_compile_options(-fpermissive)
+add_compile_options(-O3)
 
 include (ExternalProject)
 ExternalProject_Add(
