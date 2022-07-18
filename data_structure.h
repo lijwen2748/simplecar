@@ -41,12 +41,12 @@
  	class State 
  	{
  	public:
- 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL) {}
+ 	    State (const Assignment& latches) : s_ (latches), pre_ (NULL), next_ (NULL), dead_ (false), added_to_dead_solver_ (false) {}
 
  		State (const State *s, const Assignment& inputs, const Assignment& latches, const bool forward, const bool last = false); 
  		
  		State (State *s): pre_ (s->pre_), next_(s->next_), s_(s->s_), inputs_(s->inputs_), last_inputs_(s->last_inputs_), 
- 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_) {}
+ 		init_ (s->init_), id_ (s->id_), dep_ (s->dep_), dead_ (false), added_to_dead_solver_ (false) {}
 
  		~State () {}
  		
@@ -67,7 +67,7 @@
  		void print_evidence (bool forward, std::ofstream&);
  		
  		inline int depth () {return dep_;}
-		inline Assignment& s () {return s_;}
+ 		inline Assignment& s () {return s_;}
  		inline State* next () {return next_;}
  		inline State* pre () {return pre_;}
  		inline Assignment& inputs_vec () {return inputs_;}
@@ -80,6 +80,7 @@
  		inline int size () {return s_.size ();}
  		inline int element (int i) {return s_[i];}
  		
+ 		inline void set_s (Cube &cube) {s_ = cube;}
  		inline void set_next (State* nx) {next_ = nx;}
  		static void set_num_inputs_and_latches (const int n1, const int n2); 
  		
@@ -93,6 +94,10 @@
  		inline int work_count () {return work_count_;}
  		inline int work_count_reset () {work_count_ = 0;}
  		
+ 		inline void mark_dead () {dead_ = true;}
+ 		inline bool is_dead () {return dead_;}
+ 		inline void set_added_to_dead_solver (bool val) {added_to_dead_solver_ = val;}
+ 		inline bool added_to_dead_solver () {return added_to_dead_solver_;}
  	private:
  	//s_ contains all latches, but if the value of latch l is not cared, assign it to -1.
  		Assignment s_;
@@ -103,6 +108,8 @@
  		
  		bool init_;  //whether it is an initial state
  		bool final_; //whether it is an final state
+ 		bool dead_;  //whether it is a dead state 
+ 		bool added_to_dead_solver_; //whether it is added to the dead solver
  		int id_;     //the state id
  		int dep_;    //the length from the starting state
  		

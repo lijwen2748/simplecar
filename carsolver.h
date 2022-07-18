@@ -34,8 +34,10 @@ extern "C" {
 //#include "glucose/core/Solver.h"
 #endif
 
+#include "statistics.h"  //zhang xiaoyu made this change
 #include <vector>
 #include <assert.h>
+#include <fstream>      //zhang xiaou add this code
 
 namespace car
 {
@@ -62,12 +64,18 @@ namespace car
 		Minisat::vec<Minisat::Lit> assumption_;  //Assumption for SAT solver
 		//Glucose::vec<Glucose::Lit> assumption_;  //Assumption for SAT solver     
 		#endif
-		
+		Statistics* stats_;   //zhang xiaoyu made this change
 		//functions
 		bool solve_assumption ();
 		std::vector<int> get_model ();    //get the model from SAT solver
  		std::vector<int> get_uc ();       //get UC from SAT solver
+		//zhang xiaoyu code begins
+		void update_assumption(std::vector<int> new_reason);
+		std::vector<int> get_solver_uc();  //get UC from sat solver 
+	    std::vector<int> get_mus(std::vector<int> mus_reason);
 		
+        // void recursive_model_rotation();
+	    //zhang xiaoyu code ends	
 		void add_cube (const std::vector<int>&);
 		void add_clause_from_cube (const std::vector<int>&);
 		void add_clause (int);
