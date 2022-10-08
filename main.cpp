@@ -15,6 +15,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+extern "C" {
+#include "aigtoaig_forCAR.h"
+}
 #include "checker.h"
 #include "bfschecker.h"
 #include "statistics.h"
@@ -96,7 +99,7 @@ string get_file_name (string& s)
     string res = "";
     //remove .aig
 
-    size_t end_pos = tmp_res.find (".aig");
+    size_t end_pos = tmp_res.find(".aig")==string::npos ? tmp_res.find(".aag") : tmp_res.find(".aig");
     assert (end_pos != string::npos);
     
     for (int i = 0; i < end_pos; i ++)
@@ -172,7 +175,15 @@ void check_aiger (int argc, char** argv)
    }
    if (!input_set || !output_dir_set)
    		print_usage ();
-
+   /**
+    * @brief transform aag to aig using aigtoaig in aiger portfolio.
+    */
+   if (input.size() > 4 && input.substr(input.size() - 4) == ".aag") {
+     std::string new_input = input;
+     new_input[input.size() - 2] = 'i';
+     convert_aigtoaig(input.c_str(), new_input.c_str());
+     input = new_input;
+   }
   //std::string output_dir (argv[3]);
   if (output_dir.at (output_dir.size()-1) != '/')
     output_dir += "/";
@@ -208,7 +219,7 @@ void check_aiger (int argc, char** argv)
    const char * err = aiger_error(aig);
    if (err) 
    {
-     printf ("read agier file error!\n");
+     printf ("read aiger file error!\n");
      //throw InputError(err);
      exit (0);
    }
