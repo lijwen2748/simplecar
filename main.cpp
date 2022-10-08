@@ -118,9 +118,10 @@ void check_aiger (int argc, char** argv)
    bool minimal_uc = false;
    bool gv = false; //to print dot format for graphviz 
    bool ilock = false;
-   
+   bool partial = true;
+   bool propagate = true;
    bool begin = false;
-   bool end = false;
+   bool end = true;
    bool inter = true;
    bool rotate = false;
    
@@ -239,7 +240,7 @@ void check_aiger (int argc, char** argv)
    //which is consistent with the HWMCC format
    assert (model->num_outputs () >= 1);
    
-   ch = new Checker (model, stats, dot_file, forward, evidence, begin, end, inter, rotate, verbose, minimal_uc,ilock);
+   ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock);
 
    aiger_reset(aig);
    

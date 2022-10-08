@@ -168,6 +168,12 @@ namespace car{
 		//create clauses for true and false
 		cls_.push_back (clause (true_));
 		cls_.push_back (clause (-false_));
+		
+		//cout<<"constraint size: "<<constraints_.size()<<endl;
+		for(int i=0;i<constraints_.size();i++){
+			cls_.push_back(clause(constraints_[i]));
+			//cout<<"constraint: "<<constraints_[i]<<endl;
+		}
 	}
 	
 	
@@ -281,8 +287,11 @@ namespace car{
 	int Model::prime (const int id)
 	{
 		nextMap::iterator it = next_map_.find (abs (id));
-		if (it == next_map_.end ())
-		    return 0; //not found
+		if (it == next_map_.end ()){
+		    //return 0; //not found
+		    cout << "cannot find prime for " << id << endl;
+		    exit (0);
+		}
 		return (id > 0 ? it->second : -(it->second));
 	}
 	
