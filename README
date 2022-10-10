@@ -11,3 +11,18 @@
 
 For example, you can run "./simplecar -b -e ../benchmarks/single/counterp0.aig ./"
 After the program teminates, two files "counterp0.log" (output of simplecar) and "counterp0.res" (counterexample in aiger model) will be generated under the current directory.
+
+------------------------
+
+Updated 2022/10/8 by DongYibo:
+We employ cmake to help build simpleCAR now.
+
+try the following commands:
+```
+mkdir build && cd build
+cmake ..
+make -j8
+```
+
+TODO:
+clean up the binaries in picosat

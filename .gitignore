@@ -2,11 +2,17 @@
 *.log
 *.res
 *.ps
+.vscode
+# the objects
 *.o
+# the libraries generated during compilation
 *.a
-build
-picosat/picomus
-picosat/picomcs
-picosat/picosat
-picosat/picogcnf
+*.so
+# binaies
 simplecar
+picosat/picogcnf
+picosat/picomcs
+picosat/picomus
+picosat/picosat
+# the usual cmake tmp directory
+build
