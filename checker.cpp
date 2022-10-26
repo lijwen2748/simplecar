@@ -79,8 +79,63 @@ namespace car
 	        	return res;
 	    }
 	}
-	
-	bool Checker::car_check (){
+
+	/**
+	 * @brief The polymorphism is for only chechking target output when needed. This may be helpful for parallel?
+	 * 
+	 * @param out : The output stream.
+	 * @param index_to_be_checked : the index to be checked.
+	 */
+	bool Checker::check(std::ofstream &out, int index_to_be_checked) {
+		int i = index_to_be_checked;
+		assert(i < model_ ->num_outputs());
+		bad_ = ilock_ ? -model_->output(i) : model_->output(i);
+
+		// for the particular case when bad_ is true or false
+		if (bad_ == model_->true_id()) {
+		out << "1" << endl;
+		out << "b" << i << endl;
+		if (evidence_) {
+			// print init state
+			out << init_->latches() << endl;
+			// print an arbitary input vector
+			for (int j = 0; j < model_->num_inputs(); j++)
+			out << "0";
+			out << endl;
+		}
+		out << "." << endl;
+		if (verbose_) {
+			cout << "return SAT since the output is true" << endl;
+		}
+		return true;
+		} else if (bad_ == model_->false_id()) {
+		out << "0" << endl;
+		out << "b" << endl;
+		out << "." << endl;
+		if (verbose_) {
+			cout << "return UNSAT since the output is false" << endl;
+		}
+		return false;
+		}
+
+		car_initialization();
+		bool res = car_check();
+		if (res)
+		out << "1" << endl;
+		else
+		out << "0" << endl;
+		out << "b" << i << endl;
+		if (evidence_ && res)
+		print_evidence(out);
+		out << "." << endl;
+		// solver_->print_clauses();
+		car_finalization();
+		if (i == model_->num_outputs() - 1)
+		return res;
+
+	} // namespace car
+
+        bool Checker::car_check (){
 		if (verbose_)
 			cout << "start check ..." << endl;
 		if (immediate_satisfiable ()){

@@ -124,7 +124,8 @@ void check_aiger (int argc, char** argv)
    bool end = true;
    bool inter = true;
    bool rotate = false;
-   
+   int index_to_be_checked = -1;
+
    string input;
    string output_dir;
    bool input_set = false;
@@ -141,6 +142,19 @@ void check_aiger (int argc, char** argv)
    			evidence = true;
       else if (strcmp (argv[i], "-ilock") == 0)
    			ilock = true;
+      else if (strcmp (argv[i], "-i") == 0)
+      {
+        // get index of output to be verified.
+        assert(i+1 < argc && "The index of output should be specified.");
+        char *tmp = argv[++i];
+        index_to_be_checked = 0;
+        for(int j = 0 ; j < strlen(tmp); ++j)
+        {
+          assert(tmp[j] >= '0' && tmp[j] <='9' && "The index of output to be checked should be legal positive number.");
+          index_to_be_checked *= 10;
+          index_to_be_checked += tmp[j] - '0';
+        }
+      }
    		else if (strcmp (argv[i], "-h") == 0)
    			print_usage ();
    		else if (strcmp (argv[i], "-begin") == 0) {
@@ -243,9 +257,12 @@ void check_aiger (int argc, char** argv)
    ch = new Checker (model, stats, dot_file, forward, evidence, partial, propagate, begin, end, inter, rotate, verbose, minimal_uc,ilock);
 
    aiger_reset(aig);
-   
-   bool res = ch->check (res_file);
-    
+   bool res = false;
+   if (index_to_be_checked == -1)
+     res = ch->check(res_file);
+   else
+     res = ch->check(res_file, index_to_be_checked);
+
    delete model;
    model = NULL;
    res_file.close ();

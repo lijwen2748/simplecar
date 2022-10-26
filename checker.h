@@ -63,6 +63,7 @@ namespace car
 		~Checker ();
 		
 		bool check (std::ofstream&);
+		bool check (std::ofstream&,int index_to_be_checked);
 		void print_evidence (std::ofstream&);
 		inline int frame_size () {return frame_.size ();}
 		inline void print_frames_sizes () {
