@@ -92,7 +92,7 @@
  		inline void set_work_level (int id) {work_level_ = id;}
 		inline void work_count_inc () {work_count_ ++;}
  		inline int work_count () {return work_count_;}
- 		inline int work_count_reset () {work_count_ = 0;}
+ 		inline void work_count_reset () {work_count_ = 0;}
  		
  		inline void mark_dead () {dead_ = true;}
  		inline bool is_dead () {return dead_;}

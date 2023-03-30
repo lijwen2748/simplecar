@@ -78,9 +78,65 @@ namespace car
 	        if (i == model_->num_outputs () - 1)
 	        	return res;
 	    }
+		return true;// The default return value.
 	}
-	
-	bool Checker::car_check (){
+
+	/**
+	 * @brief The polymorphism is for only chechking target output when needed. This may be helpful for parallel?
+	 * 
+	 * @param out : The output stream.
+	 * @param index_to_be_checked : the index to be checked.
+	 */
+	bool Checker::check(std::ofstream &out, int index_to_be_checked) {
+		int i = index_to_be_checked;
+		assert(i < model_ ->num_outputs());
+		bad_ = ilock_ ? -model_->output(i) : model_->output(i);
+
+		// for the particular case when bad_ is true or false
+		if (bad_ == model_->true_id()) {
+		out << "1" << endl;
+		out << "b" << i << endl;
+		if (evidence_) {
+			// print init state
+			out << init_->latches() << endl;
+			// print an arbitary input vector
+			for (int j = 0; j < model_->num_inputs(); j++)
+			out << "0";
+			out << endl;
+		}
+		out << "." << endl;
+		if (verbose_) {
+			cout << "return SAT since the output is true" << endl;
+		}
+		return true;
+		} else if (bad_ == model_->false_id()) {
+		out << "0" << endl;
+		out << "b" << endl;
+		out << "." << endl;
+		if (verbose_) {
+			cout << "return UNSAT since the output is false" << endl;
+		}
+		return false;
+		}
+
+		car_initialization();
+		bool res = car_check();
+		if (res)
+		out << "1" << endl;
+		else
+		out << "0" << endl;
+		out << "b" << i << endl;
+		if (evidence_ && res)
+		print_evidence(out);
+		out << "." << endl;
+		// solver_->print_clauses();
+		car_finalization();
+		if (i == model_->num_outputs() - 1)
+			return res;
+		return true;// The default return value.
+	} // namespace car
+
+        bool Checker::car_check (){
 		if (verbose_)
 			cout << "start check ..." << endl;
 		if (immediate_satisfiable ()){
@@ -741,7 +797,8 @@ namespace car
 			return;
 		Cube assumption = st;
 		if (s != NULL){
-			Cube& cube = s->s();
+			State* t = const_cast<State*> (s);
+			auto cube = t->s();
 			Clause cl;
 			for (auto it = cube.begin(); it != cube.end(); ++it)
 				cl.push_back (-model_->prime (*it));
@@ -826,7 +883,8 @@ namespace car
 		//foward cu MUST rule out those not in \@s
 		if (forward_){
 			Cube tmp;
-			Cube &st = s->s();
+			State* t = const_cast<State*> (s);
+			Cube &st = t->s();
 			if (!partial_state_){
 				for(auto it = cu.begin(); it != cu.end(); ++it){
 					int latch_start = model_->num_inputs()+1;
@@ -868,9 +926,10 @@ namespace car
 		
 		if (forward_){
 			if (is_initial (cu)){
-				auto it = s->s().begin();
+				State *t = const_cast<State*>(s);
+				auto it = t->s().begin();
 				while ((*it) < 0) ++it;
-				assert (it != s->s().end());
+				assert (it != t->s().end());
 				int i = 0;
 				for (; i < cu.size(); ++i)
 					if (abs(cu[i]) > abs(*it))
@@ -892,17 +951,17 @@ namespace car
 	}
 	
 	bool Checker::is_dead (const State* s, Cube& dead_uc){
-	
+		State *t = const_cast<State*>(s);
 		Cube assumption;
 		
 		Cube common;
 		if (deads_.size() > 0) 
-			common = car::cube_intersect (deads_[deads_.size()-1], s->s());
+			common = car::cube_intersect (deads_[deads_.size()-1], t->s());
 			
 		for (auto it = common.begin(); it != common.end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
 			
-		for (auto it = s->s().begin(); it != s->s().end(); ++it)
+		for (auto it = t->s().begin(); it != t->s().end(); ++it)
 			assumption.push_back (forward_ ? model_->prime (*it) : (*it));
 		
 		/*
@@ -929,7 +988,7 @@ namespace car
 			//foward dead_cu MUST rule out those not in \@s //TO BE REUSED!
 			if (forward_){
 				Cube tmp;
-				Cube &st = s->s();
+				Cube &st = t->s();
 				if (!partial_state_){
 					for(auto it = dead_uc.begin(); it != dead_uc.end(); ++it){
 						int latch_start = model_->num_inputs()+1;
@@ -981,9 +1040,9 @@ namespace car
 			assert (!dead_uc.empty());
 		}
 		else{
-			if (!s->added_to_dead_solver ()){
-				dead_solver_->CARSolver::add_clause_from_cube (s->s());
-				s->set_added_to_dead_solver (true);
+			if (!t->added_to_dead_solver ()){
+				dead_solver_->CARSolver::add_clause_from_cube (t->s());
+				t->set_added_to_dead_solver (true);
 			}
 		}
 		return !res;
@@ -1192,10 +1251,11 @@ namespace car
 	
 	
 	int Checker::get_new_level (const State *s, const int frame_level){
+		State *t = const_cast<State*>(s);
 	    for (int i = 0; i < frame_level; i ++){
 	        int j = 0;
 	        for (; j < F_[i].size (); j ++){
-	        	bool res = partial_state_ ? car::imply (s->s(), F_[i][j]) : s->imply (F_[i][j]);
+	        	bool res = partial_state_ ? car::imply (t->s(), F_[i][j]) : s->imply (F_[i][j]);
 	            if (res)
 	                break;
 	        }
@@ -1206,14 +1266,15 @@ namespace car
 	}
 	
 	bool Checker::tried_before (const State* st, const int frame_level) {
+		State *t = const_cast<State*>(st);
 		//check whether st is a dead state	
-		if (st->is_dead ()) 
+		if (t->is_dead ()) 
 			return true;
 		for(auto it = deads_.begin(); it != deads_.end(); ++it){
-			bool res = partial_state_ ? car::imply (st->s(), *it) : st->imply (*it);
-			res = res && !is_initial (st->s());
+			bool res = partial_state_ ? car::imply (t->s(), *it) : st->imply (*it);
+			res = res && !is_initial (t->s());
 			if (res){
-				st->mark_dead ();
+				t->mark_dead ();
 				return true;
 			}
 		}
@@ -1237,7 +1298,7 @@ namespace car
 	    else{
 	    	stats_->count_state_contain_time_start ();
 	    	for (int i = 0; i < frame.size (); i ++) {
-	        	if (car::imply (st->s(), frame[i])) {
+	        	if (car::imply (t->s(), frame[i])) {
 	            	stats_->count_state_contain_time_end ();
 	            	return true;
 	        	} 
